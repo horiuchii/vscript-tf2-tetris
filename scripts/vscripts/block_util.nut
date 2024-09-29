@@ -16,6 +16,17 @@
     return output;
 }
 
+::BoardToWorld <- function(board_pos)
+{
+    return BOARD_PIVOT - (Vector(0, board_pos.x, board_pos.y) * GRID_SIZE);
+}
+
+::WorldToBoard <- function(world_pos)
+{
+    local board_pos = (BOARD_PIVOT - world_pos) / GRID_SIZE;
+    return Vector2D(board_pos.y, board_pos.z);
+}
+
 ::CTFPlayer.ClearFullLines <- function()
 {
     local lines_cleared = 0;

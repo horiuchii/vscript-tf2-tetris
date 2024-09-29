@@ -124,8 +124,8 @@ class Tetromino
                 rotation = new_rotation;
                 pivot += wall_kick_offset;
 
-                foreach(i, block in blocks)
-                    block.SetPos(new_block_positions[i])
+                foreach(block_index, block in blocks)
+                    block.SetPos(new_block_positions[block_index])
 
                 if(type == TETROMINO_TYPE.ACTIVE)
                 {
@@ -136,6 +136,7 @@ class Tetromino
                         owning_player.SetVar("lock_time_ticks", 0);
                         ColorBlocks(1);
                     }
+                    owning_player.SetVar("last_tetromino_action", i == 0 ? TETROMINO_ACTION.ROTATION : TETROMINO_ACTION.ROTATION_WALLKICK);
                     owning_player.UpdateGhostTetromino();
                 }
 
@@ -175,7 +176,10 @@ class Tetromino
             pivot += GetMoveDir(direction);
 
             if(type == TETROMINO_TYPE.ACTIVE)
+            {
+                owning_player.SetVar("last_tetromino_action", TETROMINO_ACTION.MOVEMENT);
                 owning_player.UpdateGhostTetromino();
+            }
         }
     }
 

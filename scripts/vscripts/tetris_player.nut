@@ -48,15 +48,20 @@ OnGameEvent("player_disconnect", 0, function(params)
 {
     SetVar("last_buttons", 0);
 
-    SetVar("next_update_hud", 0);
-
-    SetVar("next_apply_gravity_ticks", 0);
+    SetVar("next_gravity_ticks", 0);
     SetVar("lock_time_ticks", 0);
     SetVar("lock_resets", 0);
 
     SetVar("score", 0);
     SetVar("lines_cleared", 0);
     SetVar("level", 0);
+
+    SetVar("last_tetromino_action", null);
+    SetVar("last_line_clear_difficult", false);
+
+    SetVar("last_major_action", null);
+    SetVar("backtoback_display", false);
+    SetVar("major_action_display_ticks", 0);
 
     SetVar("game_active", false);
     SetVar("game_paused", false);
@@ -86,14 +91,9 @@ AddListener("tick_frame", 0, function()
 ::CTFPlayer.OnTick <- function()
 {
     CheckButtonCommands();
-
     SetVar("last_buttons", GetButtons());
 
-    if(GetVar("next_update_hud") < Time())
-    {
-        SetVar("next_update_hud", Time() + 0.1);
-        UpdateHUD();
-    }
+    UpdateHUD();
 
     if(GetVar("game_paused") || !GetVar("game_active") || !GetVar("active_tetromino"))
         return;
@@ -109,18 +109,44 @@ AddListener("tick_frame", 0, function()
     SendGameText(-0.666, -0.375, 1, "255 255 255", "HISCORE\n" + 0 + "\n\nSCORE\n" + GetVar("score") + "\n\nLINES\n" + GetVar("lines_cleared") + "\n\nLEVEL\n" + (GetVar("level") + 1));
     SendGameText(0.676, -0.85, 2, "255 255 255", "NEXT");
 
-    if(GetVar("game_paused"))
-        SendGameText(-1, -1, 3, "255 255 255", "PAUSED\nPRESS [SCOREBOARD] TO UNPAUSE");
-    else if(!GetVar("game_active"))
-        SendGameText(-1, -1, 3, "255 255 255", "GAME OVER\nPRESS [SCOREBOARD] TO PLAY AGAIN");
+    if(GetVar("major_action_display_ticks") > 0)
+    {
+        SubtractVar("major_action_display_ticks", 1);
+
+        local major_action_string = "";
+        switch(GetVar("last_major_action"))
+        {
+            case MAJOR_ACTION.SINGLE: major_action_string = "SINGLE"; break;
+            case MAJOR_ACTION.DOUBLE: major_action_string = "DOUBLE"; break;
+            case MAJOR_ACTION.TRIPLE: major_action_string = "TRIPLE"; break;
+            case MAJOR_ACTION.TETRIS: major_action_string = "TETRIS"; break;
+            case MAJOR_ACTION.TSPIN: major_action_string = "T-SPIN"; break;
+            case MAJOR_ACTION.TSPIN_SINGLE: major_action_string = "T-SPIN SINGLE"; break;
+            case MAJOR_ACTION.TSPIN_DOUBLE: major_action_string = "T-SPIN DOUBLE"; break;
+            case MAJOR_ACTION.TSPIN_TRIPLE: major_action_string = "T-SPIN TRIPLE"; break;
+        }
+
+        SendGameText(-0.666, -0.275, 3, "255 255 255", (GetVar("backtoback_display") ? "BACK-TO-BACK " : "") + major_action_string);
+    }
     else
-        SendGameText(-1, -1, 3, "255 255 255", "");
+        SendGameText(-0.666, -0.275, 3, "255 255 255", "");
+
+    if(GetVar("game_paused"))
+        SendGameText(-1, -1, 4, "255 255 255", "PAUSED\nPRESS [SCOREBOARD] TO UNPAUSE");
+    else if(!GetVar("game_active"))
+        SendGameText(-1, -1, 4, "255 255 255", "GAME OVER\nPRESS [SCOREBOARD] TO PLAY AGAIN");
+    else
+        SendGameText(-1, -1, 4, "255 255 255", "");
+
+    local debug_print = DebugGetAllVars();
+    if(debug_print.len() > 220)
+        SendGameText(0.666, -0.150, 5, "255 255 255", debug_print.slice(0, 220));
+    else
+        SendGameText(0.666, -0.150, 5, "255 255 255", debug_print);
 }
 
 ::CTFPlayer.HandleTetrominoLock <- function()
 {
-    SendGameText(-1, -1, 4, "255 255 255", GetVar("lock_resets") + "");
-
     local tetromino = GetVar("active_tetromino");
 
     // we've reached the lock reset limit, land as soon as we can
@@ -144,7 +170,7 @@ AddListener("tick_frame", 0, function()
             return;
         }
 
-        local percent = remapclamped(GetVar("lock_time_ticks").tofloat(), LOCK_DELAY_TICKS, 0, 1, 0);
+        local percent = remapclamped(GetVar("lock_time_ticks").tofloat(), LOCK_DELAY_TICKS, 0, 1, 0.25);
         tetromino.ColorBlocks(percent);
 
         SubtractVar("lock_time_ticks", 1);
@@ -162,10 +188,10 @@ AddListener("tick_frame", 0, function()
 ::CTFPlayer.HandleTetrominoGravity <- function()
 {
     // Handle gravity on our active tetromino
-    if(GetVar("next_apply_gravity_ticks") == 0)
+    if(GetVar("next_gravity_ticks") <= 0)
     {
         local soft_drop_active = IsHoldingButton(IN_BACK);
-        SetVar("next_apply_gravity_ticks", soft_drop_active ? GetNextGravityTimeFromLevel()/10 : GetNextGravityTimeFromLevel());
+        SetVar("next_gravity_ticks", soft_drop_active ? floor(GetNextGravityTimeFromLevel()/10) : GetNextGravityTimeFromLevel());
 
         if(soft_drop_active && !GetVar("active_tetromino").DoesCollideIfMoveInDirection(MOVE_DIR.DOWN))
             AddVar("score", 1);
@@ -173,38 +199,111 @@ AddListener("tick_frame", 0, function()
         GetVar("active_tetromino").Move(MOVE_DIR.DOWN);
     }
     else
-        SubtractVar("next_apply_gravity_ticks", 1);
+        SubtractVar("next_gravity_ticks", 1);
 }
 
 ::CTFPlayer.OnTetrominoLand <- function()
 {
+    local t_spin = false;
+    // lets check for a t-spin
+    // if we just landed a T and our last move was a rotation
+    // AND atleast three adjacent tiles to the center are either a block or out of bounds
+    // we have a t-spin to award
+    if(GetVar("active_tetromino").shape == "T")
+    {
+        local last_action = GetVar("last_tetromino_action");
+        if(last_action == TETROMINO_ACTION.ROTATION || last_action == TETROMINO_ACTION.ROTATION_WALLKICK)
+        {
+            local center_pos = GetVar("active_tetromino").blocks[0].pos;
+            local check_offset = [Vector2D(1, 1), Vector2D(1, -1), Vector2D(-1, 1), Vector2D(-1, -1)];
+            local occupied_slots = 0;
+
+            for (local i = 0; i < 4; i++)
+            {
+                local offset = center_pos + check_offset[i];
+
+                // position is out of bounds, this is occupied
+                if(offset.x > BOARD_SIZE.x || offset.x < 0 || offset.y > BOARD_SIZE.y)
+                {
+                    occupied_slots += 1;
+                    continue;
+                }
+                if(GetVar("board_blocks")[offset.x][offset.y])
+                {
+                    occupied_slots += 1;
+                    continue;
+                }
+            }
+
+            if(occupied_slots >= 3)
+            {
+                t_spin = true;
+            }
+        }
+    }
+
+    // clear full lines
+    local lines_cleared_pre = GetVar("lines_cleared");
+    local lines_cleared = ClearFullLines();
+
+    local last_line_clear_was_difficult = GetVar("last_line_clear_difficult");
+    local major_action = null;
+
+    local increment_level = false;
+
+    // did we perform a major action that awards points
+    if(t_spin && lines_cleared == 0)
+        major_action = MAJOR_ACTION.TSPIN;
+    else if(lines_cleared > 0)
+    {
+        if(t_spin)
+        {
+            switch(lines_cleared)
+            {
+                case 1: major_action = MAJOR_ACTION.TSPIN_SINGLE; break;
+                case 2: major_action = MAJOR_ACTION.TSPIN_DOUBLE; break;
+                case 3: major_action = MAJOR_ACTION.TSPIN_TRIPLE; break;
+            }
+            SetVar("last_line_clear_difficult", true);
+        }
+        else
+        {
+            switch(lines_cleared)
+            {
+                case 1: major_action = MAJOR_ACTION.SINGLE; break;
+                case 2: major_action = MAJOR_ACTION.DOUBLE; break;
+                case 3: major_action = MAJOR_ACTION.TRIPLE; break;
+                case 4: major_action = MAJOR_ACTION.TETRIS; break;
+            }
+            SetVar("last_line_clear_difficult", major_action == MAJOR_ACTION.TETRIS);
+        }
+
+        // Check if we should go up a level
+        AddVar("lines_cleared", lines_cleared);
+        if(floor(lines_cleared_pre / 10) < floor(GetVar("lines_cleared") / 10))
+            increment_level = true;
+    }
+
+    // if we performed a major action, show it off and award points
+    if(major_action != null)
+    {
+        local back_to_back = last_line_clear_was_difficult && GetVar("last_line_clear_difficult");
+
+        SetVar("last_major_action", major_action);
+        SetVar("backtoback_display", back_to_back);
+        SetVar("major_action_display_ticks", MAJOR_ACTION_DISPLAY_TICKS);
+
+        AddVar("score", MAJOR_ACTION_SCORE[major_action] * (GetVar("level") + 1) * (back_to_back ? BACK_TO_BACK_SCORE_MULT : 1));
+    }
+
+    if(increment_level)
+        AddVar("level", 1);
+
     SetVar("lock_time_ticks", 0);
     SetVar("lock_resets", 0);
     SetVar("active_tetromino", Tetromino(this, CycleGrabbag(), TETROMINO_TYPE.ACTIVE));
     SetVar("can_switch_hold", true);
-    SetVar("next_apply_gravity_ticks", GetNextGravityTimeFromLevel());
-
-    // Handle clearing lines
-    local lines_cleared = ClearFullLines();
-    if(lines_cleared > 0)
-    {
-        local score;
-        switch(lines_cleared)
-        {
-            case 1: score = 100; break;
-            case 2: score = 300; break;
-            case 3: score = 500; break;
-            case 4: score = 800; break;
-        }
-        AddVar("score", score * (GetVar("level") + 1));
-
-        // Check if we should go up a level
-        local lines_cleared_pre = GetVar("lines_cleared");
-        AddVar("lines_cleared", lines_cleared);
-        if(floor(lines_cleared_pre / 10) < floor(GetVar("lines_cleared") / 10))
-            AddVar("level", 1);
-    }
-
+    SetVar("next_gravity_ticks", GetNextGravityTimeFromLevel());
     UpdateGhostTetromino();
 }
 
@@ -263,7 +362,7 @@ AddListener("tick_frame", 0, function()
         tetromino.Rotate(true);
 
     if(WasButtonJustPressed(IN_BACK))
-        SetVar("next_apply_gravity_ticks", 0);
+        SetVar("next_gravity_ticks", 0);
     if(WasButtonJustPressed(IN_FORWARD))
         SwitchHoldTetromino();
     if(WasButtonJustPressed(IN_JUMP))
@@ -303,7 +402,7 @@ AddListener("tick_frame", 0, function()
         GetVar("hold_tetromino_cluster_model").SetModel(GetClusterModelFromShape(current_shape));
 
     SetEntityColor(GetVar("hold_tetromino_cluster_model"), TETROMINO_COLORS[current_shape]);
-    SetVar("next_apply_gravity_ticks", GetNextGravityTimeFromLevel());
+    SetVar("next_gravity_ticks", GetNextGravityTimeFromLevel());
     SetVar("lock_resets", 0);
     SetVar("lock_time_ticks", 0);
     UpdateGhostTetromino();

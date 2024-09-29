@@ -42,6 +42,25 @@
     return playerVars[name] <- value - subtractValue;
 }
 
+::ignored_print_vars <- ["__vname", "__vrefs", "self",
+"score", "last_buttons", "lines_cleared", "level", "can_switch_hold",
+"board_blocks", "next_tetromino_model_array", "active_tetromino", "ghost_tetromino", "hold_tetromino_cluster_model",
+"grab_bag", "game_paused", "game_active"];
+
+::CTFPlayer.DebugGetAllVars <- function()
+{
+    local playerVars = this.GetScriptScope();
+    local string = "";
+    foreach(variable, value in playerVars)
+    {
+        if(ignored_print_vars.find(variable) != null)
+            continue;
+
+        string += variable + ":" + value + "\n"
+    }
+    return string;
+}
+
 ::CreateInstancedProp <- function(client, model)
 {
     PrecacheModel(model);

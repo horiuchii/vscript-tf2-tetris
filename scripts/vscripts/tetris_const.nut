@@ -16,19 +16,33 @@ PrecacheModel(BLOCK_MODEL);
 ::LOCK_DELAY_TICKS <- 33;
 ::LOCK_DELAY_RESET_LIMIT <- 15;
 
-::LINE_CLEAR_DELAY <- 0.666;
-::AUTO_SHIFT_DELAY <- 0.183;
+::MAJOR_ACTION_DISPLAY_TICKS <- 198;
+::LINE_CLEAR_DELAY_TICKS <- 44;
+::AUTO_SHIFT_DELAY_TICKS <- 12;
 
-::BoardToWorld <- function(board_pos)
-{
-    return BOARD_PIVOT - (Vector(0, board_pos.x, board_pos.y) * GRID_SIZE);
+enum MAJOR_ACTION {
+    SINGLE
+    DOUBLE
+    TRIPLE
+    TETRIS
+    TSPIN
+    TSPIN_SINGLE
+    TSPIN_DOUBLE
+    TSPIN_TRIPLE
 }
 
-::WorldToBoard <- function(world_pos)
-{
-    local board_pos = (BOARD_PIVOT - world_pos) / GRID_SIZE;
-    return Vector2D(board_pos.y, board_pos.z);
+::MAJOR_ACTION_SCORE <- {
+    [MAJOR_ACTION.SINGLE] = 100,
+    [MAJOR_ACTION.DOUBLE] = 300,
+    [MAJOR_ACTION.TRIPLE] = 500,
+    [MAJOR_ACTION.TETRIS] = 800,
+    [MAJOR_ACTION.TSPIN] = 400,
+    [MAJOR_ACTION.TSPIN_SINGLE] = 800,
+    [MAJOR_ACTION.TSPIN_DOUBLE] = 1200,
+    [MAJOR_ACTION.TSPIN_TRIPLE] = 1600
 }
+
+::BACK_TO_BACK_SCORE_MULT <- 1.5;
 
 enum TETROMINO_TYPE {
     ACTIVE
@@ -83,25 +97,25 @@ enum ROT_STATE {
 }
 
 ::WALL_KICK_DATA <- {
-    [ROT_STATE.NONE + ROT_STATE.RIGHT] = [Vector2D(-1, 0), Vector2D(-1, 1), Vector2D(0, -2), Vector2D(-1, -2)],
-    [ROT_STATE.RIGHT + ROT_STATE.NONE] = [Vector2D(1, 0), Vector2D(1, -1), Vector2D(0, 2), Vector2D(1, 2)],
-    [ROT_STATE.RIGHT + ROT_STATE.TWO] = [Vector2D(1, 0), Vector2D(1, -1), Vector2D(0, 2), Vector2D(1, 2)],
-    [ROT_STATE.TWO + ROT_STATE.RIGHT] = [Vector2D(-1, 0), Vector2D(-1, 1), Vector2D(0, -2), Vector2D(-1, -2)],
-    [ROT_STATE.TWO + ROT_STATE.LEFT] = [Vector2D(1, 0), Vector2D(1, 1), Vector2D(0, -2), Vector2D(1, -2)],
-    [ROT_STATE.LEFT + ROT_STATE.TWO] = [Vector2D(-1, 0), Vector2D(-1, -1), Vector2D(0, 2), Vector2D(-1, 2)],
-    [ROT_STATE.LEFT + ROT_STATE.NONE] = [Vector2D(-1, 0), Vector2D(-1, -1), Vector2D(0, 2), Vector2D(-1, 2)],
-    [ROT_STATE.NONE + ROT_STATE.LEFT] = [Vector2D(1, 0), Vector2D(1, 1), Vector2D(0, -2), Vector2D(1, -2)]
+    [ROT_STATE.NONE + ROT_STATE.RIGHT] = [Vector2D(-1, 0), Vector2D(-1, -1), Vector2D(0, 2), Vector2D(-1, 2)],
+    [ROT_STATE.RIGHT + ROT_STATE.NONE] = [Vector2D(1, 0), Vector2D(1, 1), Vector2D(0, -2), Vector2D(1, -2)],
+    [ROT_STATE.RIGHT + ROT_STATE.TWO] = [Vector2D(1, 0), Vector2D(1, 1), Vector2D(0, -2), Vector2D(1, -2)],
+    [ROT_STATE.TWO + ROT_STATE.RIGHT] = [Vector2D(-1, 0), Vector2D(-1, -1), Vector2D(0, 2), Vector2D(-1, 2)],
+    [ROT_STATE.TWO + ROT_STATE.LEFT] = [Vector2D(1, 0), Vector2D(1, -1), Vector2D(0, 2), Vector2D(1, 2)],
+    [ROT_STATE.LEFT + ROT_STATE.TWO] = [Vector2D(-1, 0), Vector2D(-1, 1), Vector2D(0, -2), Vector2D(-1, -2)],
+    [ROT_STATE.LEFT + ROT_STATE.NONE] = [Vector2D(-1, 0), Vector2D(-1, 1), Vector2D(0, -2), Vector2D(-1, -2)],
+    [ROT_STATE.NONE + ROT_STATE.LEFT] = [Vector2D(1, 0), Vector2D(1, -1), Vector2D(0, 2), Vector2D(1, 2)]
 }
 
 ::WALL_KICK_DATA_I <- {
-    [ROT_STATE.NONE + ROT_STATE.RIGHT] = [Vector2D(-2, 0), Vector2D(1, 0), Vector2D(-2, -1), Vector2D(1, 2)],
-    [ROT_STATE.RIGHT + ROT_STATE.NONE] = [Vector2D(2, 0), Vector2D(-1, 0), Vector2D(2, 1), Vector2D(-1, -2)],
-    [ROT_STATE.RIGHT + ROT_STATE.TWO] = [Vector2D(-1, 0), Vector2D(2, 0), Vector2D(-1, 2), Vector2D(2, -1)],
-    [ROT_STATE.TWO + ROT_STATE.RIGHT] = [Vector2D(1, 0), Vector2D(-2, 0), Vector2D(1, -2), Vector2D(-2, 1)],
-    [ROT_STATE.TWO + ROT_STATE.LEFT] = [Vector2D(2, 0), Vector2D(-1, 0), Vector2D(2, 1), Vector2D(-1, -2)],
-    [ROT_STATE.LEFT + ROT_STATE.TWO] = [Vector2D(-2, 0), Vector2D(1, 0), Vector2D(-2, -1), Vector2D(1, 2)],
-    [ROT_STATE.LEFT + ROT_STATE.NONE] = [Vector2D(1, 0), Vector2D(-2, 0), Vector2D(1, -2), Vector2D(-2, 1)],
-    [ROT_STATE.NONE + ROT_STATE.LEFT] = [Vector2D(-1, 0), Vector2D(2, 0), Vector2D(-1, 2), Vector2D(2, -1)]
+    [ROT_STATE.NONE + ROT_STATE.RIGHT] = [Vector2D(-2, 0), Vector2D(1, 0), Vector2D(-2, 1), Vector2D(1, -2)],
+    [ROT_STATE.RIGHT + ROT_STATE.NONE] = [Vector2D(2, 0), Vector2D(-1, 0), Vector2D(2, -1), Vector2D(-1, 2)],
+    [ROT_STATE.RIGHT + ROT_STATE.TWO] = [Vector2D(-1, 0), Vector2D(2, 0), Vector2D(-1, -2), Vector2D(2, 1)],
+    [ROT_STATE.TWO + ROT_STATE.RIGHT] = [Vector2D(1, 0), Vector2D(-2, 0), Vector2D(1, 2), Vector2D(-2, -1)],
+    [ROT_STATE.TWO + ROT_STATE.LEFT] = [Vector2D(2, 0), Vector2D(-1, 0), Vector2D(2, -1), Vector2D(-1, 2)],
+    [ROT_STATE.LEFT + ROT_STATE.TWO] = [Vector2D(-2, 0), Vector2D(1, 0), Vector2D(-2, 1), Vector2D(1, -2)],
+    [ROT_STATE.LEFT + ROT_STATE.NONE] = [Vector2D(1, 0), Vector2D(-2, 0), Vector2D(1, 2), Vector2D(-2, -1)],
+    [ROT_STATE.NONE + ROT_STATE.LEFT] = [Vector2D(-1, 0), Vector2D(2, 0), Vector2D(-1, -2), Vector2D(2, 1)]
 }
 
 ::GRAVITY_LEVELS <- {
@@ -120,6 +134,12 @@ enum ROT_STATE {
     [2] = 41,
     [1] = 47,
     [0] = 52
+}
+
+enum TETROMINO_ACTION {
+    MOVEMENT
+    ROTATION
+    ROTATION_WALLKICK
 }
 
 enum MOVE_DIR {
