@@ -66,6 +66,10 @@ OnGameEvent("player_disconnect", 0, function(params)
     SetVar("game_active", false);
     SetVar("game_paused", false);
 
+    SetVar("line_clear_delay_ticks", 0);
+    SetVar("line_clear_flash_ticks", 0);
+    SetVar("lines_to_clear", []);
+
     SetVar("board_blocks", ConstructTwoDimArray(BOARD_SIZE.x + 1, BOARD_SIZE.y, null));
     SetVar("active_tetromino", null);
     SetVar("ghost_tetromino", null);
@@ -98,8 +102,10 @@ AddListener("tick_frame", 0, function()
     if(GetVar("game_paused") || !GetVar("game_active") || !GetVar("active_tetromino"))
         return;
 
-    HandleTetrominoLock();
+    if(HandleLineClearDelay())
+        return;
 
+    HandleTetrominoLock();
     HandleTetrominoGravity();
 }
 
@@ -138,11 +144,56 @@ AddListener("tick_frame", 0, function()
     else
         SendGameText(-1, -1, 4, "255 255 255", "");
 
-    local debug_print = DebugGetAllVars();
-    if(debug_print.len() > 220)
-        SendGameText(0.666, -0.150, 5, "255 255 255", debug_print.slice(0, 220));
+    if(DEBUG)
+    {
+        local debug_print = DebugGetAllVars();
+        if(debug_print.len() > 220)
+            SendGameText(0.666, -0.150, 5, "255 255 255", debug_print.slice(0, 220));
+        else
+            SendGameText(0.666, -0.150, 5, "255 255 255", debug_print);
+    }
+}
+
+::CTFPlayer.HandleLineClearDelay <- function()
+{
+    if(GetVar("line_clear_delay_ticks") > 0)
+    {
+        if(GetVar("line_clear_delay_ticks") == 1)
+        {
+            ClearLines(GetVar("lines_to_clear"));
+            CreateNewActiveTetromino(CycleGrabbag(), true);
+            SetVar("line_clear_delay_ticks", 0);
+            return;
+        }
+
+        // handle flashing
+        if((GetVar("line_clear_flash_ticks") % (LINE_CLEAR_FLASH_INTERVAL * 2)) == 0)
+        {
+            foreach(y in GetVar("lines_to_clear"))
+            {
+                foreach(block in GetBlocksAtY(y))
+                {
+                    block.SetColorCustom([0,0,0,255]);
+                }
+            }
+        }
+        else if((GetVar("line_clear_flash_ticks") % LINE_CLEAR_FLASH_INTERVAL) == 0)
+        {
+            foreach(y in GetVar("lines_to_clear"))
+            {
+                foreach(block in GetBlocksAtY(y))
+                {
+                    block.SetColorCustom([255,255,255,255]);
+                }
+            }
+        }
+
+        AddVar("line_clear_flash_ticks", 1)
+        SubtractVar("line_clear_delay_ticks", 1);
+        return true;
+    }
     else
-        SendGameText(0.666, -0.150, 5, "255 255 255", debug_print);
+        return false;
 }
 
 ::CTFPlayer.HandleTetrominoLock <- function()
@@ -244,7 +295,7 @@ AddListener("tick_frame", 0, function()
 
     // clear full lines
     local lines_cleared_pre = GetVar("lines_cleared");
-    local lines_cleared = ClearFullLines();
+    local lines_cleared = MarkFullLinesForClearing();
 
     local last_line_clear_was_difficult = GetVar("last_line_clear_difficult");
     local major_action = null;
@@ -299,12 +350,8 @@ AddListener("tick_frame", 0, function()
     if(increment_level)
         AddVar("level", 1);
 
-    SetVar("lock_time_ticks", 0);
-    SetVar("lock_resets", 0);
-    SetVar("active_tetromino", Tetromino(this, CycleGrabbag(), TETROMINO_TYPE.ACTIVE));
-    SetVar("can_switch_hold", true);
-    SetVar("next_gravity_ticks", GetNextGravityTimeFromLevel());
-    UpdateGhostTetromino();
+    if(lines_cleared == 0)
+        CreateNewActiveTetromino(CycleGrabbag(), true);
 }
 
 ::CTFPlayer.OnGrabBagUpdated <- function(removed_tetromino)
@@ -343,7 +390,7 @@ AddListener("tick_frame", 0, function()
         }
     }
 
-    if(!GetVar("game_active") || GetVar("game_paused"))
+    if(!GetVar("game_active") || GetVar("game_paused") || GetVar("line_clear_delay_ticks") > 0)
         return;
 
     local tetromino = GetVar("active_tetromino");
@@ -380,14 +427,13 @@ AddListener("tick_frame", 0, function()
 
     local current_shape = GetVar("active_tetromino").shape;
     GetVar("active_tetromino").Destroy();
-    SetVar("can_switch_hold", false);
 
     // if we have a shape in hold, create a new active tetromino with it
     // if we don't, create a new active tetromino from grabbag
     if(GetVar("hold_tetromino_shape"))
-        SetVar("active_tetromino", Tetromino(this, GetVar("hold_tetromino_shape"), TETROMINO_TYPE.ACTIVE));
+        CreateNewActiveTetromino(GetVar("hold_tetromino_shape"), false);
     else
-        SetVar("active_tetromino", Tetromino(this, CycleGrabbag(), TETROMINO_TYPE.ACTIVE));
+        CreateNewActiveTetromino(CycleGrabbag(), false);
 
     SetVar("hold_tetromino_shape", current_shape);
 
@@ -402,9 +448,15 @@ AddListener("tick_frame", 0, function()
         GetVar("hold_tetromino_cluster_model").SetModel(GetClusterModelFromShape(current_shape));
 
     SetEntityColor(GetVar("hold_tetromino_cluster_model"), TETROMINO_COLORS[current_shape]);
-    SetVar("next_gravity_ticks", GetNextGravityTimeFromLevel());
-    SetVar("lock_resets", 0);
+}
+
+::CTFPlayer.CreateNewActiveTetromino <- function(shape, new_hold_state)
+{
     SetVar("lock_time_ticks", 0);
+    SetVar("lock_resets", 0);
+    SetVar("active_tetromino", Tetromino(this, shape, TETROMINO_TYPE.ACTIVE));
+    SetVar("can_switch_hold", new_hold_state);
+    SetVar("next_gravity_ticks", GetNextGravityTimeFromLevel());
     UpdateGhostTetromino();
 }
 
@@ -425,5 +477,5 @@ AddListener("tick_frame", 0, function()
     RemoveInstancedProps();
     InitPlayerVariables();
     SetVar("game_active", true);
-    SetVar("active_tetromino", Tetromino(this, CycleGrabbag(), TETROMINO_TYPE.ACTIVE));
+    CreateNewActiveTetromino(CycleGrabbag(), true);
 }

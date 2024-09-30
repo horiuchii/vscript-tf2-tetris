@@ -21,6 +21,11 @@ class Block
         SetEntityColor(ent, [(block_color[0] * mult).tointeger(), (block_color[1] * mult).tointeger(), (block_color[2] * mult).tointeger(), alpha]);
     }
 
+    function SetColorCustom(color)
+    {
+        SetEntityColor(ent, color);
+    }
+
     function Rotate(pivot_pos, clockwise)
     {
         return RotateVector2D_90Degrees(pos, pivot_pos, clockwise);

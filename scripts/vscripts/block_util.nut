@@ -27,9 +27,20 @@
     return Vector2D(board_pos.y, board_pos.z);
 }
 
-::CTFPlayer.ClearFullLines <- function()
+::CTFPlayer.GetBlocksAtY <- function(target_y)
 {
-    local lines_cleared = 0;
+    local blocks_in_line = [];
+    for(local x = 1; x < BOARD_SIZE.x + 1; x++)
+    {
+        if(GetVar("board_blocks")[x][target_y])
+            blocks_in_line.append(GetVar("board_blocks")[x][target_y]);
+    }
+    return blocks_in_line;
+}
+
+::CTFPlayer.MarkFullLinesForClearing <- function()
+{
+    local lines_cleared = [];
 
     for(local y = 0; y < BOARD_SIZE.y; y++)
     {
@@ -42,18 +53,36 @@
 
         if(blocks_in_line.len() == BOARD_SIZE.x)
         {
-            foreach(block in blocks_in_line)
-            {
-                block.ent.Destroy();
-                GetVar("board_blocks")[block.pos.x][block.pos.y] = null;
-            }
-            //TODO: have this happen once after the for loop. this would be faster and fix visual bugs
-            MoveAllBlocksAboveYDown(y);
-            lines_cleared += 1;
+            lines_cleared.append(y);
         }
     }
 
-    return lines_cleared;
+    if(lines_cleared.len() > 0)
+    {
+        SetVar("line_clear_delay_ticks", LINE_CLEAR_DELAY_TICKS);
+        SetVar("line_clear_flash_ticks", 0);
+        SetVar("lines_to_clear", lines_cleared);
+    }
+
+    return lines_cleared.len();
+}
+
+::CTFPlayer.ClearLines <- function(target_y_array)
+{
+    for(local y = 0; y < BOARD_SIZE.y; y++)
+    {
+        if(target_y_array.find(y) != null)
+        {
+            for(local x = 1; x < BOARD_SIZE.x + 1; x++)
+            {
+                GetVar("board_blocks")[x][y].ent.Destroy();
+                GetVar("board_blocks")[x][y] = null;
+            }
+
+            //TODO: have this happen once after the for loop. this would be faster and fix visual bugs
+            MoveAllBlocksAboveYDown(y);
+        }
+    }
 }
 
 ::CTFPlayer.MoveAllBlocksAboveYDown <- function(target_y)

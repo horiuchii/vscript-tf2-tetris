@@ -45,7 +45,7 @@
 ::ignored_print_vars <- ["__vname", "__vrefs", "self",
 "score", "last_buttons", "lines_cleared", "level", "can_switch_hold",
 "board_blocks", "next_tetromino_model_array", "active_tetromino", "ghost_tetromino", "hold_tetromino_cluster_model",
-"grab_bag", "game_paused", "game_active"];
+"grab_bag", "game_paused", "game_active", "lines_to_clear", "hold_tetromino_shape"];
 
 ::CTFPlayer.DebugGetAllVars <- function()
 {

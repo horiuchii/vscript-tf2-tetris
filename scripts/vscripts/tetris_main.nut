@@ -1,3 +1,5 @@
+::DEBUG <- false;
+
 ::projectDir <- ""
 IncludeScript(projectDir+"/__lizardlib/_lizardlib.nut", this);
 IncludeScript(projectDir+"tetris_const.nut", this);
