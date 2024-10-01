@@ -12,7 +12,7 @@ class Block
 
         this.ent = CreateInstancedProp(this.owning_player, BLOCK_MODEL);
         SetPropInt(ent, "m_nRenderMode", kRenderTransColor);
-        this.SetPos(pos + Vector2D(BOARD_SIZE.x/2, 0));
+        this.SetPos(pos + Vector2D(BOARD_SIZE.x/2, BOARD_SIZE_OFFSCREEN));
     }
 
     function SetColor(shape, mult, alpha)
@@ -79,6 +79,10 @@ class Tetromino
             case "O": pivot = blocks[0].pos + Vector2D(0.5, -0.5); break;
             default: pivot = blocks[0].pos;
         }
+
+        // check if we are spawning inside a block
+        if(DoesCollideIfMoveInDirection(MOVE_DIR.NONE))
+            owning_player.DoGameOver();
     }
 
     function Destroy()
@@ -197,12 +201,18 @@ class Tetromino
     function Land()
     {
         //are we in bounds? if not, end game
+        local blocks_oob = 0;
         foreach(block in blocks)
-            if(block.pos.y < 0)
+            if(block.pos.y < BOARD_SIZE_OFFSCREEN)
             {
-                owning_player.SetVar("game_active", false);
-                return;
+                blocks_oob += 1;
             }
+
+        if(blocks_oob == blocks.len())
+        {
+            owning_player.DoGameOver();
+            return;
+        }
 
         //put current tetromino in board array
         foreach(block in blocks)

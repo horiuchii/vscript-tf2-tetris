@@ -43,23 +43,24 @@ OnGameEvent("player_disconnect", 0, function(params)
 {
     SetVar("last_buttons", 0);
 
-    SetVar("next_gravity_ticks", 0);
-    SetVar("lock_time_ticks", 0);
-    SetVar("lock_resets", 0);
+    SetVar("game_active", false);
+    SetVar("game_paused", false);
 
     SetVar("score", 0);
     SetVar("lines_cleared", 0);
     SetVar("level", 0);
 
+    SetVar("next_gravity_ticks", 0);
+    SetVar("lock_time_ticks", 0);
+    SetVar("lock_resets", 0);
+
+    SetVar("das_ticks", -DAS_INITIAL_TICKS);
+    SetVar("das_direction", null);
+
     SetVar("last_tetromino_action", null);
-    SetVar("last_line_clear_difficult", false);
-
+    SetVar("back_to_back_combo", 0);
     SetVar("last_major_action", null);
-    SetVar("backtoback_display", false);
     SetVar("major_action_display_ticks", 0);
-
-    SetVar("game_active", false);
-    SetVar("game_paused", false);
 
     SetVar("line_clear_delay_ticks", 0);
     SetVar("line_clear_flash_ticks", 0);
@@ -83,7 +84,7 @@ AddListener("tick_frame", 0, function()
     foreach(player in GetAlivePlayers())
     {
         SetPropInt(player, "m_Shared.m_nPlayerState", 2); //stops suicide commands
-        SetPropBool(player, "m_bIsCoaching", true); //stops team menu
+        SetPropBool(player, "m_bIsCoaching", true); //stops team menu, fine as long as we NEVER enter spectator
         player.OnTick();
     }
 });
@@ -128,7 +129,15 @@ AddListener("tick_frame", 0, function()
             case MAJOR_ACTION.TSPIN_TRIPLE: major_action_string = "T-SPIN TRIPLE"; break;
         }
 
-        SendGameText(-0.666, -0.275, 3, "255 255 255", (GetVar("backtoback_display") ? "BACK-TO-BACK " : "") + major_action_string);
+        local back_to_back_string = "";
+
+        if(GetVar("back_to_back_combo") > 1)
+        {
+            local combo_streak = (GetVar("back_to_back_combo") > 2) ? ("x" + (GetVar("back_to_back_combo") - 1) + " ") : "";
+            back_to_back_string = "BACK-TO-BACK " + combo_streak
+        }
+
+        SendGameText(-0.666, -0.275, 3, "255 255 255", back_to_back_string + major_action_string);
     }
     else
         SendGameText(-0.666, -0.275, 3, "255 255 255", "");
@@ -152,44 +161,42 @@ AddListener("tick_frame", 0, function()
 
 ::CTFPlayer.HandleLineClearDelay <- function()
 {
-    if(GetVar("line_clear_delay_ticks") > 0)
+    if(!(GetVar("line_clear_delay_ticks") > 0))
+        return false;
+
+    if(GetVar("line_clear_delay_ticks") == 1)
     {
-        if(GetVar("line_clear_delay_ticks") == 1)
-        {
-            ClearLines(GetVar("lines_to_clear"));
-            CreateNewActiveTetromino(CycleGrabbag(), true);
-            SetVar("line_clear_delay_ticks", 0);
-            return;
-        }
-
-        // handle flashing
-        if((GetVar("line_clear_flash_ticks") % (LINE_CLEAR_FLASH_INTERVAL * 2)) == 0)
-        {
-            foreach(y in GetVar("lines_to_clear"))
-            {
-                foreach(block in GetBlocksAtY(y))
-                {
-                    block.SetColorCustom([0,0,0,255]);
-                }
-            }
-        }
-        else if((GetVar("line_clear_flash_ticks") % LINE_CLEAR_FLASH_INTERVAL) == 0)
-        {
-            foreach(y in GetVar("lines_to_clear"))
-            {
-                foreach(block in GetBlocksAtY(y))
-                {
-                    block.SetColorCustom([255,255,255,255]);
-                }
-            }
-        }
-
-        AddVar("line_clear_flash_ticks", 1)
-        SubtractVar("line_clear_delay_ticks", 1);
+        ClearLines(GetVar("lines_to_clear"));
+        CreateNewActiveTetromino(CycleGrabbag(), true);
+        SetVar("line_clear_delay_ticks", 0);
         return true;
     }
-    else
-        return false;
+
+    // handle flashing
+    if((GetVar("line_clear_flash_ticks") % (LINE_CLEAR_FLASH_INTERVAL * 2)) == 0)
+    {
+        foreach(y in GetVar("lines_to_clear"))
+        {
+            foreach(block in GetBlocksAtY(y))
+            {
+                block.SetColorCustom([0,0,0,255]);
+            }
+        }
+    }
+    else if((GetVar("line_clear_flash_ticks") % LINE_CLEAR_FLASH_INTERVAL) == 0)
+    {
+        foreach(y in GetVar("lines_to_clear"))
+        {
+            foreach(block in GetBlocksAtY(y))
+            {
+                block.SetColorCustom([255,255,255,255]);
+            }
+        }
+    }
+
+    AddVar("line_clear_flash_ticks", 1)
+    SubtractVar("line_clear_delay_ticks", 1);
+    return true;
 }
 
 ::CTFPlayer.HandleTetrominoLock <- function()
@@ -234,11 +241,11 @@ AddListener("tick_frame", 0, function()
 
 ::CTFPlayer.HandleTetrominoGravity <- function()
 {
-    // Handle gravity on our active tetromino
-    if(GetVar("next_gravity_ticks") <= 0)
+    local soft_drop_active = IsHoldingButton(IN_BACK);
+
+    if(GetVar("next_gravity_ticks") <= 0 || (soft_drop_active && (GetNextGravityTimeFromLevel() - GetVar("next_gravity_ticks")) >= floor(GetNextGravityTimeFromLevel()/10)))
     {
-        local soft_drop_active = IsHoldingButton(IN_BACK);
-        SetVar("next_gravity_ticks", soft_drop_active ? floor(GetNextGravityTimeFromLevel()/10) : GetNextGravityTimeFromLevel());
+        SetVar("next_gravity_ticks", GetNextGravityTimeFromLevel());
 
         if(soft_drop_active && !GetVar("active_tetromino").DoesCollideIfMoveInDirection(MOVE_DIR.DOWN))
             AddVar("score", 1);
@@ -293,7 +300,6 @@ AddListener("tick_frame", 0, function()
     local lines_cleared_pre = GetVar("lines_cleared");
     local lines_cleared = MarkFullLinesForClearing();
 
-    local last_line_clear_was_difficult = GetVar("last_line_clear_difficult");
     local major_action = null;
 
     local increment_level = false;
@@ -311,7 +317,7 @@ AddListener("tick_frame", 0, function()
                 case 2: major_action = MAJOR_ACTION.TSPIN_DOUBLE; break;
                 case 3: major_action = MAJOR_ACTION.TSPIN_TRIPLE; break;
             }
-            SetVar("last_line_clear_difficult", true);
+            AddVar("back_to_back_combo", 1);
         }
         else
         {
@@ -322,7 +328,10 @@ AddListener("tick_frame", 0, function()
                 case 3: major_action = MAJOR_ACTION.TRIPLE; break;
                 case 4: major_action = MAJOR_ACTION.TETRIS; break;
             }
-            SetVar("last_line_clear_difficult", major_action == MAJOR_ACTION.TETRIS);
+            if(major_action == MAJOR_ACTION.TETRIS)
+                AddVar("back_to_back_combo", 1);
+            else
+                SetVar("back_to_back_combo", 0);
         }
 
         // Check if we should go up a level
@@ -334,13 +343,10 @@ AddListener("tick_frame", 0, function()
     // if we performed a major action, show it off and award points
     if(major_action != null)
     {
-        local back_to_back = last_line_clear_was_difficult && GetVar("last_line_clear_difficult");
-
         SetVar("last_major_action", major_action);
-        SetVar("backtoback_display", back_to_back);
         SetVar("major_action_display_ticks", MAJOR_ACTION_DISPLAY_TICKS);
 
-        AddVar("score", MAJOR_ACTION_SCORE[major_action] * (GetVar("level") + 1) * (back_to_back ? BACK_TO_BACK_SCORE_MULT : 1));
+        AddVar("score", MAJOR_ACTION_SCORE[major_action] * (GetVar("level") + 1) * (GetVar("back_to_back_combo") > 1 ? BACK_TO_BACK_SCORE_MULT : 1));
     }
 
     if(increment_level)
@@ -348,6 +354,11 @@ AddListener("tick_frame", 0, function()
 
     if(lines_cleared == 0)
         CreateNewActiveTetromino(CycleGrabbag(), true);
+}
+
+::CTFPlayer.DoGameOver <- function()
+{
+    SetVar("game_active", false);
 }
 
 ::CTFPlayer.OnGrabBagUpdated <- function(removed_tetromino)
@@ -394,10 +405,38 @@ AddListener("tick_frame", 0, function()
     if(!tetromino)
         return;
 
-    if(WasButtonJustPressed(IN_MOVELEFT))
-        tetromino.Move(MOVE_DIR.LEFT);
-    if(WasButtonJustPressed(IN_MOVERIGHT))
-        tetromino.Move(MOVE_DIR.RIGHT);
+    // handle delayed auto shift
+    if(IsHoldingButton(IN_MOVELEFT))
+    {
+        if(GetVar("das_direction") != MOVE_DIR.LEFT)
+        {
+            SetVar("das_ticks", -DAS_INITIAL_TICKS);
+            SetVar("das_direction", MOVE_DIR.LEFT);
+            tetromino.Move(MOVE_DIR.LEFT);
+        }
+        else
+            AddVar("das_ticks", 1);
+    }
+    else if(IsHoldingButton(IN_MOVERIGHT))
+    {
+        if(GetVar("das_direction") != MOVE_DIR.RIGHT)
+        {
+            SetVar("das_ticks", -DAS_INITIAL_TICKS);
+            SetVar("das_direction", MOVE_DIR.RIGHT);
+            tetromino.Move(MOVE_DIR.RIGHT);
+        }
+        else
+            AddVar("das_ticks", 1);
+    }
+    else
+    {
+        SetVar("das_direction", null);
+    }
+
+    if(GetVar("das_direction") && GetVar("das_ticks") > 0 && GetVar("das_ticks") % DAS_PERIOD_TICKS == 0)
+    {
+        tetromino.Move(GetVar("das_direction"));
+    }
 
     if(WasButtonJustPressed(IN_ATTACK))
         tetromino.Rotate(false);
@@ -405,7 +444,10 @@ AddListener("tick_frame", 0, function()
         tetromino.Rotate(true);
 
     if(WasButtonJustPressed(IN_BACK))
-        SetVar("next_gravity_ticks", 0);
+    {
+        if(GetVar("active_tetromino").DoesCollideIfMoveInDirection(MOVE_DIR.DOWN))
+            tetromino.Land();
+    }
     if(WasButtonJustPressed(IN_FORWARD))
         SwitchHoldTetromino();
     if(WasButtonJustPressed(IN_JUMP))

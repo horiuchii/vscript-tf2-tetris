@@ -3,7 +3,8 @@ PrecacheModel(BLOCK_MODEL);
 
 ::BOARD_PIVOT <- FindByName(null, "board_pivot").GetOrigin();
 ::GRID_SIZE <- 64.0;
-::BOARD_SIZE <- Vector2D(10,20);
+::BOARD_SIZE_OFFSCREEN <- 5;
+::BOARD_SIZE <- Vector2D(10,20 + BOARD_SIZE_OFFSCREEN);
 ::BLOCK_OFFSET <- Vector(0,32,-32);
 
 ::HELD_TETROMINO_POS <- FindByName(null, "hold_tetromino_pos").GetOrigin();
@@ -13,15 +14,16 @@ PrecacheModel(BLOCK_MODEL);
 ::NEXT_TETROMINO_OFFSET <- -96;
 ::NEXT_TETROMINO_COUNT <- 5;
 
-::LOCK_DELAY_TICKS <- 33;
-::LOCK_DELAY_RESET_LIMIT <- 15;
+::LOCK_DELAY_TICKS <- 33; // how long it takes for a tetromino to land after touching the ground
+::LOCK_DELAY_RESET_LIMIT <- 15; // how many times you can cancel the lock
 
-::LINE_CLEAR_DELAY_TICKS <- 44;
-::LINE_CLEAR_FLASH_INTERVAL <- 6;
+::LINE_CLEAR_DELAY_TICKS <- 33; // how long it takes after clearing a line to pause
+::LINE_CLEAR_FLASH_INTERVAL <- 6; //  how often cleared lines should flash during the above pause
 
-::MAJOR_ACTION_DISPLAY_TICKS <- 198 + LINE_CLEAR_DELAY_TICKS;
+::MAJOR_ACTION_DISPLAY_TICKS <- 198 + LINE_CLEAR_DELAY_TICKS; // how long to display our latest major action (BACK-TO-BACK T-SPIN TRIPLE)
 
-::AUTO_SHIFT_DELAY_TICKS <- 12;
+::DAS_INITIAL_TICKS <- 6; // how many ticks until DAS starts
+::DAS_PERIOD_TICKS <- 4; // how many ticks inbetween DAS inputs
 
 enum MAJOR_ACTION {
     SINGLE
@@ -146,15 +148,19 @@ enum TETROMINO_ACTION {
 }
 
 enum MOVE_DIR {
+    NONE
     LEFT
     RIGHT
     DOWN
+    UP
 }
 
 ::MOVE_DIR_POS <- {
+    [MOVE_DIR.NONE] = Vector2D(0, 0),
     [MOVE_DIR.LEFT] = Vector2D(-1, 0),
     [MOVE_DIR.RIGHT] = Vector2D(1, 0),
-    [MOVE_DIR.DOWN] = Vector2D(0, 1)
+    [MOVE_DIR.DOWN] = Vector2D(0, 1),
+    [MOVE_DIR.UP] = Vector2D(0, -1)
 }
 
 ::GetMoveDir <- function(dir)
