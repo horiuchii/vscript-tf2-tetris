@@ -118,8 +118,8 @@
         player = GetPlayerFromUserID(params.userid);
         if (!IsValidClient(player))
             return;
-        if (eventName == "player_spawn" && params.team == 0)
-            return;
+        //if (eventName == "player_spawn" && params.team == 0)
+        //    return;
         if (eventName == "player_death" && params.death_flags & 32)
         {
             FireCustomEvent("player_death_feign", params);

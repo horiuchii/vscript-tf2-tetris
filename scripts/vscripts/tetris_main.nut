@@ -1,4 +1,4 @@
-::DEBUG <- false;
+::DEBUG <- true;
 
 ::projectDir <- ""
 IncludeScript(projectDir+"/__lizardlib/_lizardlib.nut", this);
@@ -12,6 +12,7 @@ IncludeScript(projectDir+"tetris_player.nut", this);
 Convars.SetValue("mp_waitingforplayers_cancel", 1);
 Convars.SetValue("mp_forceautoteam", 1);
 Convars.SetValue("mp_humans_must_join_team", "red");
+Convars.SetValue("mp_allowspectators", 0);
 Convars.SetValue("tf_dropped_weapon_lifetime", 0);
 Convars.SetValue("tf_force_holidays_off", 1);
 Convars.SetValue("sv_alltalk", 1);

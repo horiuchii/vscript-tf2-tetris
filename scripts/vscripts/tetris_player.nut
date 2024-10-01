@@ -1,26 +1,14 @@
-::PlayerLastSpawn <- {};
+::PlayerSpawned <- [];
 ::GlobalTickCounter <- 0;
 
-OnGameEvent("player_spawn", 0, function(params)
+OnGameEvent("player_spawn", function(params)
 {
     local player = GetPlayerFromUserID(params.userid);
 
     player.ValidateScriptScope();
-
-    if(player in PlayerLastSpawn)
-    {
-        if(!(PlayerLastSpawn[player] > Time() + 0.15))
-            return;
-    }
-
-    PlayerLastSpawn[player] <- Time();
-
     player.InitPlayerVariables();
 
-    player.SwitchTeam(TF_TEAM_RED);
-    SetPropInt(player, "m_Shared.m_iDesiredPlayerClass", TF_CLASS_SCOUT);
-    player.ForceRespawn();
-
+    player.AddHudHideFlags(HIDEHUD_HEALTH | HIDEHUD_MISCSTATUS | HIDEHUD_WEAPONSELECTION | HIDEHUD_FLASHLIGHT | HIDEHUD_CROSSHAIR);
     player.RemoveAllWeapons();
     player.RemoveAllWearables();
 
@@ -28,14 +16,21 @@ OnGameEvent("player_spawn", 0, function(params)
     player.DisableDraw();
     player.SetMoveType(MOVETYPE_NONE, MOVECOLLIDE_DEFAULT);
     SetPropInt(player, "m_iFOV", 75);
+    FindByName(null, "point_viewcontrol").AcceptInput("enable", "", player, player);
+
+    if(PlayerSpawned.find(player) != null)
+        return;
+
+    PlayerSpawned.append(player);
+
+    player.SwitchTeam(TF_TEAM_RED);
+    SetPropInt(player, "m_Shared.m_iDesiredPlayerClass", TF_CLASS_SCOUT);
+    player.ForceRespawn();
 
     RunWithDelay(0.1, function()
     {
         player.AddCustomAttribute("voice pitch scale", 0, -1);
-        player.AddHudHideFlags(HIDEHUD_HEALTH | HIDEHUD_MISCSTATUS | HIDEHUD_WEAPONSELECTION | HIDEHUD_FLASHLIGHT | HIDEHUD_CROSSHAIR);
     })
-
-    FindByName(null, "point_viewcontrol").AcceptInput("enable", "", player, player);
 })
 
 OnGameEvent("player_disconnect", 0, function(params)
@@ -88,6 +83,7 @@ AddListener("tick_frame", 0, function()
     foreach(player in GetAlivePlayers())
     {
         SetPropInt(player, "m_Shared.m_nPlayerState", 2); //stops suicide commands
+        SetPropBool(player, "m_bIsCoaching", true); //stops team menu
         player.OnTick();
     }
 });
@@ -416,6 +412,10 @@ AddListener("tick_frame", 0, function()
     {
         local times_moved = GetVar("active_tetromino").SnapToFloor();
         AddVar("score", 2 * times_moved);
+
+        if(times_moved > 0)
+            SetVar("last_tetromino_action", TETROMINO_ACTION.MOVEMENT)
+
         tetromino.Land();
     }
 }
