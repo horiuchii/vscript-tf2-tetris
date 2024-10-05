@@ -48,6 +48,7 @@ OnGameEvent("player_disconnect", 0, function(params)
 
     SetVar("last_buttons", 0);
 
+    SetVar("first_play", true);
     SetVar("game_active", false);
     SetVar("game_paused", false);
 
@@ -150,10 +151,17 @@ AddListener("tick_frame", 0, function()
 
     if(GetVar("game_paused"))
         SendGameText(-1, -1, 4, "255 255 255", "PAUSED\n\nPRESS [SCOREBOARD]\nTO UNPAUSE");
+    else if(GetVar("first_play") && !GetVar("game_active"))
+        SendGameText(-1, -1, 4, "255 255 255", "WELCOME TO TETRIS\n\nPRESS [SCOREBOARD]\nTO START");
     else if(!GetVar("game_active"))
         SendGameText(-1, -1, 4, "255 255 255", "GAME OVER\n\nPRESS [SCOREBOARD]\nTO PLAY AGAIN");
     else
         SendGameText(-1, -1, 4, "255 255 255", "");
+
+    if(GetVar("game_paused") || !GetVar("game_active"))
+        SendGameText(0.666, 0.75, 5, "255 255 255", "[ATTACK / ALT-ATTACK] Rotate\n[STRAFE] Move Tetromino\n[MOVE FORWARD] Hold\n[MOVE BACK] Soft Drop\n[JUMP] Hard Drop\n[SCOREBOARD] Pause");
+    else
+        SendGameText(-1, -1, 5, "255 255 255", "");
 
     if(DEBUG)
     {
@@ -559,5 +567,6 @@ AddListener("tick_frame", 0, function()
     RemoveInstancedProps();
     InitPlayerVariables();
     SetVar("game_active", true);
+    SetVar("first_play", false);
     CreateNewActiveTetromino(CycleGrabbag(), true);
 }
