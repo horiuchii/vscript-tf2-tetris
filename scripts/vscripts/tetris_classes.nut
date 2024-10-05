@@ -95,7 +95,7 @@ class Tetromino
     {
         foreach(block in blocks)
         {
-            block.SetColor(shape, mult, type == TETROMINO_TYPE.GHOST ? 100 : 255)
+            block.SetColor(shape, mult, type == TETROMINO_TYPE.GHOST ? 50 : 255)
         }
     }
 
@@ -189,7 +189,9 @@ class Tetromino
                 owning_player.SetVar("last_tetromino_action", TETROMINO_ACTION.MOVEMENT);
                 owning_player.UpdateGhostTetromino();
             }
+            return true;
         }
+        return false;
     }
 
     function MoveOffset(pos_offset)
@@ -218,9 +220,10 @@ class Tetromino
         foreach(block in blocks)
         {
             SetPropBool(block.ent, "m_bGlowEnabled", true);
-            ColorBlocks(0.75);
             owning_player.GetVar("board_blocks")[block.pos.x][block.pos.y] = block;
         }
+
+        ColorBlocks(0.75);
 
         owning_player.OnTetrominoLand();
     }

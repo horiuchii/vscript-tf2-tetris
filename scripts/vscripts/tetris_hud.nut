@@ -3,7 +3,7 @@
     x = -1
     y = -1
     color = "255 255 255"
-    holdtime = 500
+    holdtime = 99999
     fadein = 0
     fadeout = 0
     message = " "

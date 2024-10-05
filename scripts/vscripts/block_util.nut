@@ -78,18 +78,29 @@
                 GetVar("board_blocks")[x][y].ent.Destroy();
                 GetVar("board_blocks")[x][y] = null;
             }
-
-            //TODO: have this happen once after the for loop. this would be faster and fix visual bugs
-            MoveAllBlocksAboveYDown(y);
         }
     }
+
+    MoveAllBlocksAboveYDown(target_y_array);
 }
 
-::CTFPlayer.MoveAllBlocksAboveYDown <- function(target_y)
+::CTFPlayer.MoveAllBlocksAboveYDown <- function(target_y_array)
 {
-    for(local y = BOARD_SIZE.y; y > 0; y--)
+    local move_down = array(BOARD_SIZE.y, 0);
+
+    // pre calculate how many times each row will move down
+    for(local y = BOARD_SIZE.y - 1; y > 0; y--)
     {
-        if(!(y < target_y))
+        foreach(target_y in target_y_array)
+        {
+            if(y < target_y)
+                move_down[y] += 1;
+        }
+    }
+
+    for(local y = BOARD_SIZE.y - 1; y > 0; y--)
+    {
+        if(!move_down[y])
             continue;
 
         for(local x = 1; x < BOARD_SIZE.x + 1; x++)
@@ -99,8 +110,8 @@
                 continue;
 
             GetVar("board_blocks")[block.pos.x][block.pos.y] = null;
-            GetVar("board_blocks")[block.pos.x][block.pos.y + 1] = block;
-            block.SetPos(block.pos + GetMoveDir(MOVE_DIR.DOWN));
+            GetVar("board_blocks")[block.pos.x][block.pos.y + move_down[y]] = block;
+            block.SetPos(block.pos + (GetMoveDir(MOVE_DIR.DOWN) * move_down[y]));
         }
     }
 }
@@ -137,5 +148,50 @@
         {
             return GRAVITY_LEVELS[level_threshold];
         }
+    }
+}
+
+::CTFPlayer.PlayMajorActionSound <- function(major_action, level_up)
+{
+    if(major_action == null)
+        return;
+
+    local sound;
+
+    switch(major_action)
+    {
+        case MAJOR_ACTION.SINGLE: sound = "single"; break;
+        case MAJOR_ACTION.DOUBLE: sound = "double"; break;
+        case MAJOR_ACTION.TRIPLE: sound = "triple"; break;
+        case MAJOR_ACTION.TETRIS: sound = "tetris"; break;
+        case MAJOR_ACTION.TSPIN: sound = "tspin"; break;
+        case MAJOR_ACTION.TSPIN_SINGLE: sound = "tspin_single"; break;
+        case MAJOR_ACTION.TSPIN_DOUBLE: sound = "tspin_double"; break;
+        case MAJOR_ACTION.TSPIN_TRIPLE: sound = "tspin_triple"; break;
+    }
+
+    if(GetVar("back_to_back_combo") > 1)
+    {
+        PlaySoundForPlayer({sound_name = "tetris_back_to_back.wav"});
+        RunWithDelay(0.8, function(){
+            PlaySoundForPlayer({sound_name = "tetris_" + sound + ".wav"});
+        })
+        if(level_up)
+        {
+            RunWithDelay(2.3, function(){
+                PlaySoundForPlayer({sound_name = "tetris_levelup.wav"});
+            })
+        }
+    }
+    else
+    {
+        PlaySoundForPlayer({sound_name = "tetris_" + sound + ".wav"});
+        if(level_up)
+        {
+            RunWithDelay(1.5, function(){
+                PlaySoundForPlayer({sound_name = "tetris_levelup.wav"});
+            })
+        }
+
     }
 }

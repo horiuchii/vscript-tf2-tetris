@@ -6,17 +6,19 @@ OnGameEvent("player_spawn", function(params)
     local player = GetPlayerFromUserID(params.userid);
 
     player.ValidateScriptScope();
-    player.InitPlayerVariables();
 
     player.AddHudHideFlags(HIDEHUD_HEALTH | HIDEHUD_MISCSTATUS | HIDEHUD_WEAPONSELECTION | HIDEHUD_FLASHLIGHT | HIDEHUD_CROSSHAIR);
     player.RemoveAllWeapons();
     player.RemoveAllWearables();
+    player.RemoveAllViewmodels();
 
     player.AddFlag(FL_ATCONTROLS);
     player.DisableDraw();
     player.SetMoveType(MOVETYPE_NONE, MOVECOLLIDE_DEFAULT);
     SetPropInt(player, "m_iFOV", 75);
     FindByName(null, "point_viewcontrol").AcceptInput("enable", "", player, player);
+
+    player.InitPlayerVariables();
 
     if(PlayerSpawned.find(player) != null)
         return;
@@ -41,6 +43,9 @@ OnGameEvent("player_disconnect", 0, function(params)
 
 ::CTFPlayer.InitPlayerVariables <- function()
 {
+    if(this.GetTeam() != TF_TEAM_UNASSIGNED)
+        CookieUtil.CreateCache(this);
+
     SetVar("last_buttons", 0);
 
     SetVar("game_active", false);
@@ -84,7 +89,6 @@ AddListener("tick_frame", 0, function()
     foreach(player in GetAlivePlayers())
     {
         SetPropInt(player, "m_Shared.m_nPlayerState", 2); //stops suicide commands
-        SetPropBool(player, "m_bIsCoaching", true); //stops team menu, fine as long as we NEVER enter spectator
         player.OnTick();
     }
 });
@@ -109,7 +113,7 @@ AddListener("tick_frame", 0, function()
 ::CTFPlayer.UpdateHUD <- function()
 {
     SendGameText(-0.676, -0.85, 0, GetVar("can_switch_hold") ? "255 255 255" : "60 60 60", "HOLD");
-    SendGameText(-0.666, -0.375, 1, "255 255 255", "HISCORE\n" + 0 + "\n\nSCORE\n" + GetVar("score") + "\n\nLINES\n" + GetVar("lines_cleared") + "\n\nLEVEL\n" + (GetVar("level") + 1));
+    SendGameText(-0.666, -0.375, 1, "255 255 255", "HISCORE\n" + CookieUtil.Get(this, "highscore_marathon") + "\n\nSCORE\n" + GetVar("score") + "\n\nLINES\n" + GetVar("lines_cleared") + "\n\nLEVEL\n" + (GetVar("level") + 1));
     SendGameText(0.676, -0.85, 2, "255 255 255", "NEXT");
 
     if(GetVar("major_action_display_ticks") > 0)
@@ -137,15 +141,17 @@ AddListener("tick_frame", 0, function()
             back_to_back_string = "BACK-TO-BACK " + combo_streak
         }
 
-        SendGameText(-0.666, -0.275, 3, "255 255 255", back_to_back_string + major_action_string);
+        local color = remapclamped(GetVar("major_action_display_ticks"), (MAJOR_ACTION_DISPLAY_TICKS - MAJOR_ACTION_DISPLAY_TICKS/4.0), 0.0, 255, 0).tostring();
+
+        SendGameText(-1, -0.025, 3, color + " " + color + " " + color, back_to_back_string + major_action_string);
     }
     else
-        SendGameText(-0.666, -0.275, 3, "255 255 255", "");
+        SendGameText(-1, -0.025, 3, "255 255 255", "");
 
     if(GetVar("game_paused"))
-        SendGameText(-1, -1, 4, "255 255 255", "PAUSED\nPRESS [SCOREBOARD] TO UNPAUSE");
+        SendGameText(-1, -1, 4, "255 255 255", "PAUSED\n\nPRESS [SCOREBOARD]\nTO UNPAUSE");
     else if(!GetVar("game_active"))
-        SendGameText(-1, -1, 4, "255 255 255", "GAME OVER\nPRESS [SCOREBOARD] TO PLAY AGAIN");
+        SendGameText(-1, -1, 4, "255 255 255", "GAME OVER\n\nPRESS [SCOREBOARD]\nTO PLAY AGAIN");
     else
         SendGameText(-1, -1, 4, "255 255 255", "");
 
@@ -179,7 +185,7 @@ AddListener("tick_frame", 0, function()
         {
             foreach(block in GetBlocksAtY(y))
             {
-                block.SetColorCustom([0,0,0,255]);
+                block.SetColorCustom([50,50,50,255]);
             }
         }
     }
@@ -189,7 +195,7 @@ AddListener("tick_frame", 0, function()
         {
             foreach(block in GetBlocksAtY(y))
             {
-                block.SetColorCustom([255,255,255,255]);
+                block.SetColorCustom([150,150,150,255]);
             }
         }
     }
@@ -212,7 +218,10 @@ AddListener("tick_frame", 0, function()
 
     // Are we currently amist locking the tetromino? If not, check if we should by seeing if we can move down again
     if(GetVar("lock_time_ticks") == 0 && tetromino.DoesCollideIfMoveInDirection(MOVE_DIR.DOWN))
+    {
         SetVar("lock_time_ticks", LOCK_DELAY_TICKS);
+        PlaySoundForPlayer({sound_name = "tetromino_startlock.mp3", volume = 0.75, pitch = remapclamped(GetVar("lock_resets"), 0.0, 14, 100, 200)});
+    }
 
     if(GetVar("lock_time_ticks") > 0)
     {
@@ -248,7 +257,10 @@ AddListener("tick_frame", 0, function()
         SetVar("next_gravity_ticks", GetNextGravityTimeFromLevel());
 
         if(soft_drop_active && !GetVar("active_tetromino").DoesCollideIfMoveInDirection(MOVE_DIR.DOWN))
+        {
             AddVar("score", 1);
+            PlaySoundForPlayer({sound_name = "tetromino_softdrop.mp3", volume = 0.5});
+        }
 
         GetVar("active_tetromino").Move(MOVE_DIR.DOWN);
     }
@@ -343,6 +355,7 @@ AddListener("tick_frame", 0, function()
     // if we performed a major action, show it off and award points
     if(major_action != null)
     {
+        PlayMajorActionSound(major_action, increment_level);
         SetVar("last_major_action", major_action);
         SetVar("major_action_display_ticks", MAJOR_ACTION_DISPLAY_TICKS);
 
@@ -354,11 +367,27 @@ AddListener("tick_frame", 0, function()
 
     if(lines_cleared == 0)
         CreateNewActiveTetromino(CycleGrabbag(), true);
+
+    PlaySoundForPlayer({sound_name = "tetromino_land.mp3", volume = 0.75});
 }
 
 ::CTFPlayer.DoGameOver <- function()
 {
+    if(GetVar("score") > CookieUtil.Get(this, "highscore_marathon"))
+        CookieUtil.Set(this, "highscore_marathon", GetVar("score"));
+
     SetVar("game_active", false);
+
+    PlaySoundForPlayer({sound_name = "tetris_gameover.wav"});
+
+    for(local y = 0; y < BOARD_SIZE.y; y++)
+    {
+        for(local x = 1; x < BOARD_SIZE.x + 1; x++)
+        {
+            if(GetVar("board_blocks")[x][y])
+                GetVar("board_blocks")[x][y].SetColorCustom([50, 50, 50, 255]);
+        }
+    }
 }
 
 ::CTFPlayer.OnGrabBagUpdated <- function(removed_tetromino)
@@ -412,7 +441,8 @@ AddListener("tick_frame", 0, function()
         {
             SetVar("das_ticks", -DAS_INITIAL_TICKS);
             SetVar("das_direction", MOVE_DIR.LEFT);
-            tetromino.Move(MOVE_DIR.LEFT);
+            if(tetromino.Move(MOVE_DIR.LEFT))
+                PlaySoundForPlayer({sound_name = "tetromino_move.mp3", volume = 0.35});
         }
         else
             AddVar("das_ticks", 1);
@@ -423,7 +453,8 @@ AddListener("tick_frame", 0, function()
         {
             SetVar("das_ticks", -DAS_INITIAL_TICKS);
             SetVar("das_direction", MOVE_DIR.RIGHT);
-            tetromino.Move(MOVE_DIR.RIGHT);
+            if(tetromino.Move(MOVE_DIR.RIGHT))
+                PlaySoundForPlayer({sound_name = "tetromino_move.mp3", volume = 0.35});
         }
         else
             AddVar("das_ticks", 1);
@@ -435,13 +466,20 @@ AddListener("tick_frame", 0, function()
 
     if(GetVar("das_direction") && GetVar("das_ticks") > 0 && GetVar("das_ticks") % DAS_PERIOD_TICKS == 0)
     {
-        tetromino.Move(GetVar("das_direction"));
+        if(tetromino.Move(GetVar("das_direction")))
+            PlaySoundForPlayer({sound_name = "tetromino_move.mp3", volume = 0.35});
     }
 
     if(WasButtonJustPressed(IN_ATTACK))
+    {
         tetromino.Rotate(false);
+        PlaySoundForPlayer({sound_name = "tetromino_rotate.mp3", volume = 0.75});
+    }
     if(WasButtonJustPressed(IN_ATTACK2))
+    {
         tetromino.Rotate(true);
+        PlaySoundForPlayer({sound_name = "tetromino_rotate.mp3", volume = 0.75});
+    }
 
     if(WasButtonJustPressed(IN_BACK))
     {
@@ -459,6 +497,7 @@ AddListener("tick_frame", 0, function()
             SetVar("last_tetromino_action", TETROMINO_ACTION.MOVEMENT)
 
         tetromino.Land();
+        PlaySoundForPlayer({sound_name = "tetromino_harddrop.mp3", volume = 0.75});
     }
 }
 
@@ -490,6 +529,7 @@ AddListener("tick_frame", 0, function()
         GetVar("hold_tetromino_cluster_model").SetModel(GetClusterModelFromShape(current_shape));
 
     SetEntityColor(GetVar("hold_tetromino_cluster_model"), TETROMINO_COLORS[current_shape]);
+    PlaySoundForPlayer({sound_name = "tetromino_hold.mp3", volume = 0.75});
 }
 
 ::CTFPlayer.CreateNewActiveTetromino <- function(shape, new_hold_state)

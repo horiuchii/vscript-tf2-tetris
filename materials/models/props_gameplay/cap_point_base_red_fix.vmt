@@ -1,0 +1,9 @@
+"VertexLitGeneric"
+{
+	"$basetexture" "Models/props_gameplay/cap_point_base_red"
+	"$bumpmap" "Models/props_gameplay/cap_point_base_normal"
+	"$envmap" "env_cubemap"
+	"$selfillum" "1"
+	"$normalmapalphaenvmapmask" "1" 
+	"$envmaptint" "[1 1 1]"
+}

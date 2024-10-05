@@ -61,6 +61,33 @@
     return string;
 }
 
+::CTFPlayer.GetAccountID <- function()
+{
+    try
+    {
+        return split(GetPropString(this, "m_szNetworkIDString"), ":")[2].tointeger();
+    }
+    catch (exception)
+    {
+        return null;
+    }
+}
+
+::CTFPlayer.PlaySoundForPlayer <- function(data)
+{
+    local base_table = {entity = this, filter_type = RECIPIENT_FILTER_SINGLE_PLAYER};
+
+    if(safeget(data, "sound_name", null))
+        PrecacheSound(safeget(data, "sound_name", null));
+
+    EmitSoundEx(combinetables(data, base_table));
+}
+
+::CTFPlayer.SendChat <- function(message)
+{
+    ClientPrint(this, HUD_PRINTTALK, message);
+}
+
 ::CreateInstancedProp <- function(client, model)
 {
     PrecacheModel(model);
@@ -85,17 +112,11 @@
 ::CTFPlayer.RemoveInstancedProps <- function()
 {
     local entity = null
-    while(entity = Entities.FindByClassname(entity, "obj_teleporter"))
+    while(entity = FindByClassname(entity, "obj_teleporter"))
     {
         if(GetPropEntity(entity, "m_hBuilder") == this)
             entity.Destroy();
     }
-}
-
-::PlaySoundForPlayer <- function(sound, client)
-{
-    client.PrecacheSoundScript(sound);
-    EmitSoundOnClient(sound, client);
 }
 
 ::CTFPlayer.RemoveAllWeapons <- function()
@@ -121,6 +142,16 @@
         wearable.Destroy();
 }
 
+::CTFPlayer.RemoveAllViewmodels <- function()
+{
+    local entity = null
+    while(entity = FindByClassname(entity, "tf_viewmodel"))
+    {
+        if(GetPropEntity(entity, "m_hOwner") == this)
+            entity.Destroy();
+    }
+}
+
 ::ConstructTwoDimArray <- function(size1, size2, default_value)
 {
 	local return_array = array(size1);
@@ -128,4 +159,9 @@
 		return_array[i] = array(size2, default_value);
 
 	return return_array;
+}
+
+::VLerp <- function(a,b,t)
+{
+    return (a + (b - a) * t)
 }

@@ -5,6 +5,7 @@ IncludeScript(projectDir+"/__lizardlib/_lizardlib.nut", this);
 IncludeScript(projectDir+"tetris_const.nut", this);
 IncludeScript(projectDir+"tetris_util.nut", this);
 IncludeScript(projectDir+"block_util.nut", this);
+IncludeScript(projectDir+"tetris_cookies.nut", this);
 IncludeScript(projectDir+"tetris_hud.nut", this);
 IncludeScript(projectDir+"tetris_classes.nut", this);
 IncludeScript(projectDir+"tetris_player.nut", this);
