@@ -382,7 +382,7 @@ AddListener("tick_frame", 0, function()
 
     SetVar("game_active", false);
 
-    PlaySoundForPlayer({sound_name = "tetris_gameover.wav"});
+    PlaySoundForPlayer({sound_name = "tetris_gameover.mp3"});
 
     for(local y = 0; y < BOARD_SIZE.y; y++)
     {

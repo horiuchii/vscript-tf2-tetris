@@ -172,24 +172,24 @@
 
     if(GetVar("back_to_back_combo") > 1)
     {
-        PlaySoundForPlayer({sound_name = "tetris_back_to_back.wav"});
+        PlaySoundForPlayer({sound_name = "tetris_back_to_back.mp3"});
         RunWithDelay(0.8, function(){
-            PlaySoundForPlayer({sound_name = "tetris_" + sound + ".wav"});
+            PlaySoundForPlayer({sound_name = "tetris_" + sound + ".mp3"});
         })
         if(level_up)
         {
             RunWithDelay(2.3, function(){
-                PlaySoundForPlayer({sound_name = "tetris_levelup.wav"});
+                PlaySoundForPlayer({sound_name = "tetris_levelup.mp3"});
             })
         }
     }
     else
     {
-        PlaySoundForPlayer({sound_name = "tetris_" + sound + ".wav"});
+        PlaySoundForPlayer({sound_name = "tetris_" + sound + ".mp3"});
         if(level_up)
         {
             RunWithDelay(1.5, function(){
-                PlaySoundForPlayer({sound_name = "tetris_levelup.wav"});
+                PlaySoundForPlayer({sound_name = "tetris_levelup.mp3"});
             })
         }
 
