@@ -44,3 +44,9 @@ tf_player_manager.GetScriptScope().Tick <- function()
     return -1;
 }
 AddThinkToEnt(tf_player_manager, "Tick");
+
+OnGameEvent("player_say", function(params)
+{
+    if(params.text == "/toggle_debug")
+        DEBUG = !DEBUG;
+})

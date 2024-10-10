@@ -1,0 +1,7 @@
+"UnlitGeneric"
+{
+	"$basetexture" "Tools/toolsblack"
+	$nofog 1
+	$translucent 1
+	$alpha 0.92
+}
