@@ -15,7 +15,7 @@ PrecacheModel(BLOCK_MODEL);
 ::NEXT_TETROMINO_COUNT <- 5;
 
 ::LOCK_DELAY_TICKS <- 33; // how long it takes for a tetromino to land after touching the ground
-::LOCK_DELAY_RESET_LIMIT <- 15; // how many times you can cancel the lock
+::LOCK_DELAY_RESET_LIMIT <- 8; // how many times you can cancel the lock
 
 ::LINE_CLEAR_DELAY_TICKS <- 22; // how long it takes after clearing a line to pause
 ::LINE_CLEAR_FLASH_INTERVAL <- 4; //  how often cleared lines should flash during the above pause

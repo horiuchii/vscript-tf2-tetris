@@ -15,6 +15,11 @@ class Block
         this.SetPos(pos + Vector2D(BOARD_SIZE.x/2, BOARD_SIZE_OFFSCREEN));
     }
 
+    function _tostring()
+    {
+        return "[" + ent.entindex() + "] Block";
+    }
+
     function SetColor(shape, mult, alpha)
     {
         local block_color = TETROMINO_COLORS[shape];
@@ -85,6 +90,11 @@ class Tetromino
             owning_player.DoGameOver();
     }
 
+    function _tostring()
+    {
+        return "[Tetromino] " + ArrayToStr(blocks);
+    }
+
     function Destroy()
     {
         foreach(block in blocks)
@@ -97,16 +107,6 @@ class Tetromino
         {
             block.SetColor(shape, mult, type == TETROMINO_TYPE.GHOST ? 50 : 255)
         }
-    }
-
-    function CopyTetromino(tetromino, color_mult)
-    {
-        shape = tetromino.shape;
-        foreach(i, block in tetromino.blocks)
-        {
-            blocks[i].SetPos(block.pos);
-        }
-        ColorBlocks(color_mult);
     }
 
     function Rotate(clockwise)
@@ -152,6 +152,12 @@ class Tetromino
                 break;
             }
         }
+    }
+
+    function SetBlockPos(block_positions, offset)
+    {
+        foreach(i, block in blocks)
+            block.SetPos(block_positions[i] + offset);
     }
 
     function DoesCollide(block_positions)
@@ -245,6 +251,22 @@ class Tetromino
 
         MoveOffset(Vector2D(0, move_down));
         return move_down;
+    }
+
+    function GetGhostBlockPos()
+    {
+        local new_block_positions = [];
+        foreach(block in blocks)
+            new_block_positions.append(block.pos);
+
+        do
+        {
+            foreach(i, block_pos in new_block_positions)
+                new_block_positions[i] = (block_pos + GetMoveDir(MOVE_DIR.DOWN))
+        }
+        while (!DoesCollide(new_block_positions))
+
+        return new_block_positions;
     }
 }
 ::Tetromino <- Tetromino;

@@ -42,23 +42,26 @@
     return playerVars[name] <- value - subtractValue;
 }
 
-::ignored_print_vars <- ["__vname", "__vrefs", "self",
-"score", "last_buttons", "lines_cleared", "level", "can_switch_hold",
-"board_blocks", "next_tetromino_model_array", "active_tetromino", "ghost_tetromino", "hold_tetromino_cluster_model",
-"grab_bag", "game_paused", "game_active", "lines_to_clear", "hold_tetromino_shape"];
+::ignored_print_vars <- ["__vname", "__vrefs"];
 
-::CTFPlayer.DebugGetAllVars <- function()
+::CTFPlayer.DrawDebugVars <- function()
 {
     local playerVars = this.GetScriptScope();
-    local string = "";
+    local line_offset = 0;
     foreach(variable, value in playerVars)
     {
         if(ignored_print_vars.find(variable) != null)
             continue;
 
-        string += variable + ":" + value + "\n"
+        if(typeof value == "array")
+            value = ArrayToStr(value)
+
+        DebugDrawScreenTextLine(
+            0.666, 0.485, line_offset++,
+            variable + ": " + value,
+            255, 255, 255, 255, 0.03
+        );
     }
-    return string;
 }
 
 ::CTFPlayer.GetAccountID <- function()
@@ -95,13 +98,9 @@
     prop.DispatchSpawn();
 
     prop.AddEFlags(EFL_NO_THINK_FUNCTION); // prevents the entity from disappearing
-    prop.SetSolid(SOLID_NONE);
-    prop.SetMoveType(MOVETYPE_NOCLIP, MOVECOLLIDE_DEFAULT);
-    prop.SetCollisionGroup(COLLISION_GROUP_NONE);
     SetPropBool(prop, "m_bPlacing", true);
     SetPropInt(prop, "m_fObjectFlags", 2); // sets "attachment" flag, prevents entity being snapped to player feet
     SetPropEntity(prop, "m_hBuilder", client);
-    SetPropEntity(prop, "m_hOwnerEntity", client);
 
     prop.SetModel(model);
     prop.KeyValueFromInt("disableshadows", 1);
@@ -164,4 +163,15 @@
 ::VLerp <- function(a,b,t)
 {
     return (a + (b - a) * t)
+}
+
+::ArrayToStr <- function(value)
+{
+    local new_value = "[";
+    foreach(i, array_var in value)
+    {
+        new_value += array_var + (i == value.len() - 1 ? "" : ", ");
+    }
+    new_value += "]";
+    return new_value;
 }

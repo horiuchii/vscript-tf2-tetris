@@ -165,11 +165,7 @@ AddListener("tick_frame", 0, function()
 
     if(DEBUG)
     {
-        local debug_print = DebugGetAllVars();
-        if(debug_print.len() > 220)
-            SendGameText(0.666, -0.150, 5, "255 255 255", debug_print.slice(0, 220));
-        else
-            SendGameText(0.666, -0.150, 5, "255 255 255", debug_print);
+        DrawDebugVars();
     }
 }
 
@@ -552,14 +548,18 @@ AddListener("tick_frame", 0, function()
 
 ::CTFPlayer.UpdateGhostTetromino <- function()
 {
-    if(!GetVar("active_tetromino"))
+    local active_tetromino = GetVar("active_tetromino");
+    if(!active_tetromino)
         return;
 
     if(!GetVar("ghost_tetromino"))
-        SetVar("ghost_tetromino", Tetromino(this, GetVar("active_tetromino").shape, TETROMINO_TYPE.GHOST));
+        SetVar("ghost_tetromino", Tetromino(this, active_tetromino.shape, TETROMINO_TYPE.GHOST));
 
-    GetVar("ghost_tetromino").CopyTetromino(GetVar("active_tetromino"), 1);
-    GetVar("ghost_tetromino").SnapToFloor();
+    local ghost_tetromino = GetVar("ghost_tetromino");
+
+    ghost_tetromino.shape = active_tetromino.shape;
+    ghost_tetromino.ColorBlocks(1);
+    ghost_tetromino.SetBlockPos(active_tetromino.GetGhostBlockPos(), GetMoveDir(MOVE_DIR.UP));
 }
 
 ::CTFPlayer.ResetEverything <- function()
