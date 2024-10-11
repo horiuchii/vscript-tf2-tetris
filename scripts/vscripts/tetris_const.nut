@@ -20,7 +20,8 @@ PrecacheModel(BLOCK_MODEL);
 ::LINE_CLEAR_DELAY_TICKS <- 22; // how long it takes after clearing a line to pause
 ::LINE_CLEAR_FLASH_INTERVAL <- 4; //  how often cleared lines should flash during the above pause
 
-::MAJOR_ACTION_DISPLAY_TICKS <- 198 + LINE_CLEAR_DELAY_TICKS; // how long to display our latest major action (BACK-TO-BACK T-SPIN TRIPLE)
+::MAJOR_ACTION_DISPLAY_TICKS <- 198 + LINE_CLEAR_DELAY_TICKS; // how long to display our latest major action (BACK-TO-BACK MINI T-SPIN SINGLE)
+::MAJOR_ACTION_DISPLAY_TICKS_PERFECT_CLEAR <- 66; // how much longer to display our latest major action when we also got a perfect clear (BACK-TO-BACK TETRIS PERFECT CLEAR)
 
 ::DAS_INITIAL_TICKS <- 6; // how many ticks until DAS starts
 ::DAS_PERIOD_TICKS <- 4; // how many ticks inbetween DAS inputs
@@ -30,7 +31,9 @@ enum MAJOR_ACTION {
     DOUBLE
     TRIPLE
     TETRIS
+    MINI_TSPIN
     TSPIN
+    MINI_TSPIN_SINGLE
     TSPIN_SINGLE
     TSPIN_DOUBLE
     TSPIN_TRIPLE
@@ -41,13 +44,31 @@ enum MAJOR_ACTION {
     [MAJOR_ACTION.DOUBLE] = 300,
     [MAJOR_ACTION.TRIPLE] = 500,
     [MAJOR_ACTION.TETRIS] = 800,
+    [MAJOR_ACTION.MINI_TSPIN] = 100,
     [MAJOR_ACTION.TSPIN] = 400,
+    [MAJOR_ACTION.MINI_TSPIN_SINGLE] = 200,
     [MAJOR_ACTION.TSPIN_SINGLE] = 800,
     [MAJOR_ACTION.TSPIN_DOUBLE] = 1200,
     [MAJOR_ACTION.TSPIN_TRIPLE] = 1600
 }
 
 ::BACK_TO_BACK_SCORE_MULT <- 1.5;
+
+enum PERFECT_CLEAR {
+    SINGLE
+    DOUBLE
+    TRIPLE
+    TETRIS
+    BACK_TO_BACK_TETRIS
+}
+
+::PERFECT_CLEAR_SCORE <- {
+    [PERFECT_CLEAR.SINGLE] = 800,
+    [PERFECT_CLEAR.DOUBLE] = 1200,
+    [PERFECT_CLEAR.TRIPLE] = 1800,
+    [PERFECT_CLEAR.TETRIS] = 2000,
+    [PERFECT_CLEAR.BACK_TO_BACK_TETRIS] = 3200
+}
 
 enum TETROMINO_TYPE {
     ACTIVE

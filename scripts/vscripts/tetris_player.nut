@@ -66,6 +66,8 @@ OnGameEvent("player_disconnect", 0, function(params)
     SetVar("last_tetromino_action", null);
     SetVar("back_to_back_combo", 0);
     SetVar("last_major_action", null);
+    SetVar("back_to_back_full_clear", 0);
+    SetVar("last_full_clear", null);
     SetVar("major_action_display_ticks", 0);
 
     SetVar("line_clear_delay_ticks", 0);
@@ -122,16 +124,19 @@ AddListener("tick_frame", 0, function()
         SubtractVar("major_action_display_ticks", 1);
 
         local major_action_string = "";
+
         switch(GetVar("last_major_action"))
         {
-            case MAJOR_ACTION.SINGLE: major_action_string = "SINGLE"; break;
-            case MAJOR_ACTION.DOUBLE: major_action_string = "DOUBLE"; break;
-            case MAJOR_ACTION.TRIPLE: major_action_string = "TRIPLE"; break;
-            case MAJOR_ACTION.TETRIS: major_action_string = "TETRIS"; break;
-            case MAJOR_ACTION.TSPIN: major_action_string = "T-SPIN"; break;
-            case MAJOR_ACTION.TSPIN_SINGLE: major_action_string = "T-SPIN SINGLE"; break;
-            case MAJOR_ACTION.TSPIN_DOUBLE: major_action_string = "T-SPIN DOUBLE"; break;
-            case MAJOR_ACTION.TSPIN_TRIPLE: major_action_string = "T-SPIN TRIPLE"; break;
+            case MAJOR_ACTION.SINGLE: major_action_string += "SINGLE"; break;
+            case MAJOR_ACTION.DOUBLE: major_action_string += "DOUBLE"; break;
+            case MAJOR_ACTION.TRIPLE: major_action_string += "TRIPLE"; break;
+            case MAJOR_ACTION.TETRIS: major_action_string += "TETRIS"; break;
+            case MAJOR_ACTION.MINI_TSPIN: major_action_string += "MINI T-SPIN"; break;
+            case MAJOR_ACTION.TSPIN: major_action_string += "T-SPIN"; break;
+            case MAJOR_ACTION.MINI_TSPIN_SINGLE: major_action_string += "MINI T-SPIN SINGLE"; break;
+            case MAJOR_ACTION.TSPIN_SINGLE: major_action_string += "T-SPIN SINGLE"; break;
+            case MAJOR_ACTION.TSPIN_DOUBLE: major_action_string += "T-SPIN DOUBLE"; break;
+            case MAJOR_ACTION.TSPIN_TRIPLE: major_action_string += "T-SPIN TRIPLE"; break;
         }
 
         local back_to_back_string = "";
@@ -142,9 +147,25 @@ AddListener("tick_frame", 0, function()
             back_to_back_string = "BACK-TO-BACK " + combo_streak
         }
 
+        local full_clear_string = "";
+        if(GetVar("last_full_clear"))
+        {
+            full_clear_string += "\n ";
+            switch(GetVar("last_full_clear"))
+            {
+                case PERFECT_CLEAR.SINGLE: full_clear_string += "SINGLE-LINE PERFECT CLEAR"; break;
+                case PERFECT_CLEAR.DOUBLE: full_clear_string += "DOUBLE-LINE PERFECT CLEAR"; break;
+                case PERFECT_CLEAR.TRIPLE: full_clear_string += "TRIPLE-LINE PERFECT CLEAR"; break;
+                case PERFECT_CLEAR.TETRIS: full_clear_string += "TETRIS PERFECT CLEAR"; break;
+                case PERFECT_CLEAR.BACK_TO_BACK_TETRIS: full_clear_string += "BACK-TO-BACK TETIRS PERFECT CLEAR"; break;
+            }
+        }
+
         local color = remapclamped(GetVar("major_action_display_ticks"), (MAJOR_ACTION_DISPLAY_TICKS - MAJOR_ACTION_DISPLAY_TICKS/4.0), 0.0, 255, 0).tostring();
 
-        SendGameText(-1, -0.025, 3, color + " " + color + " " + color, back_to_back_string + major_action_string);
+        local y = GetVar("last_full_clear") ? -0.001 : -0.025
+
+        SendGameText(-1, y, 3, color + " " + color + " " + color, back_to_back_string + major_action_string + full_clear_string);
     }
     else
         SendGameText(-1, -0.025, 3, "255 255 255", "");
@@ -179,6 +200,7 @@ AddListener("tick_frame", 0, function()
         ClearLines(GetVar("lines_to_clear"));
         CreateNewActiveTetromino(CycleGrabbag(), true);
         SetVar("line_clear_delay_ticks", 0);
+        SetVar("lines_to_clear", []);
         return true;
     }
 
@@ -279,9 +301,9 @@ AddListener("tick_frame", 0, function()
     // if we just landed a T and our last move was a rotation
     // AND atleast three adjacent tiles to the center are either a block or out of bounds
     // we have a t-spin to award
+    local last_action = GetVar("last_tetromino_action");
     if(GetVar("active_tetromino").shape == "T")
     {
-        local last_action = GetVar("last_tetromino_action");
         if(last_action == TETROMINO_ACTION.ROTATION || last_action == TETROMINO_ACTION.ROTATION_WALLKICK)
         {
             local center_pos = GetVar("active_tetromino").blocks[0].pos;
@@ -293,7 +315,7 @@ AddListener("tick_frame", 0, function()
                 local offset = center_pos + check_offset[i];
 
                 // position is out of bounds, this is occupied
-                if(offset.x > BOARD_SIZE.x || offset.x < 0 || offset.y > BOARD_SIZE.y)
+                if(offset.x >= BOARD_SIZE.x || offset.x < 0 || offset.y >= BOARD_SIZE.y)
                 {
                     occupied_slots += 1;
                     continue;
@@ -320,16 +342,19 @@ AddListener("tick_frame", 0, function()
 
     local increment_level = false;
 
+    // a mini-tspin is when a rotation wallkick is the last action AND we didn't clear more than one line
+    local mini_tspin = (last_action == TETROMINO_ACTION.ROTATION_WALLKICK && lines_cleared >= 1);
+
     // did we perform a major action that awards points
     if(t_spin && lines_cleared == 0)
-        major_action = MAJOR_ACTION.TSPIN;
+        major_action = (mini_tspin ? MAJOR_ACTION.MINI_TSPIN : MAJOR_ACTION.TSPIN);
     else if(lines_cleared > 0)
     {
         if(t_spin)
         {
             switch(lines_cleared)
             {
-                case 1: major_action = MAJOR_ACTION.TSPIN_SINGLE; break;
+                case 1: major_action = (mini_tspin ? MAJOR_ACTION.MINI_TSPIN_SINGLE : MAJOR_ACTION.TSPIN_SINGLE); break;
                 case 2: major_action = MAJOR_ACTION.TSPIN_DOUBLE; break;
                 case 3: major_action = MAJOR_ACTION.TSPIN_TRIPLE; break;
             }
@@ -356,14 +381,51 @@ AddListener("tick_frame", 0, function()
             increment_level = true;
     }
 
+    //check for perfect clears
+    local perfect_clear_action = null;
+    if(IsBoardEmpty())
+    {
+        switch(lines_cleared)
+        {
+            case 1: perfect_clear_action = PERFECT_CLEAR.SINGLE; break;
+            case 2: perfect_clear_action = PERFECT_CLEAR.DOUBLE; break;
+            case 3: perfect_clear_action = PERFECT_CLEAR.TRIPLE; break;
+            case 4:
+            {
+                if(GetVar("back_to_back_combo") > 0)
+                    perfect_clear_action = PERFECT_CLEAR.BACK_TO_BACK_TETRIS;
+                else
+                    perfect_clear_action = PERFECT_CLEAR.TETRIS;
+
+                break;
+            }
+        }
+
+        SetVar("last_full_clear", perfect_clear_action);
+
+        if(perfect_clear_action >= PERFECT_CLEAR.TETRIS)
+            AddVar("back_to_back_full_clear", 1);
+        else
+            SetVar("back_to_back_full_clear", 0);
+    }
+    else
+    {
+        SetVar("back_to_back_full_clear", 0);
+        SetVar("last_full_clear", null);
+    }
+
     // if we performed a major action, show it off and award points
     if(major_action != null)
     {
         PlayMajorActionSound(major_action, increment_level);
         SetVar("last_major_action", major_action);
-        SetVar("major_action_display_ticks", MAJOR_ACTION_DISPLAY_TICKS);
+        SetVar("major_action_display_ticks", MAJOR_ACTION_DISPLAY_TICKS + (GetVar("last_full_clear") ? MAJOR_ACTION_DISPLAY_TICKS_PERFECT_CLEAR : 0));
 
-        AddVar("score", MAJOR_ACTION_SCORE[major_action] * (GetVar("level") + 1) * (GetVar("back_to_back_combo") > 1 ? BACK_TO_BACK_SCORE_MULT : 1));
+        local full_clear_score = 0;
+        if(perfect_clear_action)
+            full_clear_score = PERFECT_CLEAR_SCORE[perfect_clear_action];
+
+        AddVar("score", (MAJOR_ACTION_SCORE[major_action] + full_clear_score) * (GetVar("level") + 1) * (GetVar("back_to_back_combo") > 1 ? BACK_TO_BACK_SCORE_MULT : 1));
     }
 
     if(increment_level)

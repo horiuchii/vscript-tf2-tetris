@@ -27,6 +27,23 @@
     return Vector2D(board_pos.y, board_pos.z);
 }
 
+::CTFPlayer.IsBoardEmpty <- function()
+{
+    for(local y = BOARD_SIZE.y - 1; y > 0; y--)
+    {
+        if(GetVar("lines_to_clear").find(y) != null)
+            continue;
+
+        for(local x = 1; x < BOARD_SIZE.x + 1; x++)
+        {
+            if(GetVar("board_blocks")[x][y])
+               return false;
+        }
+    }
+
+    return true;
+}
+
 ::CTFPlayer.GetBlocksAtY <- function(target_y)
 {
     local blocks_in_line = [];
@@ -164,7 +181,9 @@
         case MAJOR_ACTION.DOUBLE: sound = "double"; break;
         case MAJOR_ACTION.TRIPLE: sound = "triple"; break;
         case MAJOR_ACTION.TETRIS: sound = "tetris"; break;
+        case MAJOR_ACTION.MINI_TSPIN: sound = "mini_tspin"; break;
         case MAJOR_ACTION.TSPIN: sound = "tspin"; break;
+        case MAJOR_ACTION.MINI_TSPIN_SINGLE: sound = "mini_tspin_single"; break;
         case MAJOR_ACTION.TSPIN_SINGLE: sound = "tspin_single"; break;
         case MAJOR_ACTION.TSPIN_DOUBLE: sound = "tspin_double"; break;
         case MAJOR_ACTION.TSPIN_TRIPLE: sound = "tspin_triple"; break;
