@@ -3,7 +3,8 @@ PrecacheModel(BLOCK_MODEL);
 
 ::CHAN_HOLD <- 0;
 ::CHAN_STATS <- 1;
-::CHAN_MAJOR_ACTION <- 2;
+::CHAN_NEXT <- 2;
+::CHAN_MAJOR_ACTION <- 3;
 
 ::CHAN_MENU <- 0;
 ::CHAN_INSTRUCTIONS <- 1;

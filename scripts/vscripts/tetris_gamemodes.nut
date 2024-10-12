@@ -19,7 +19,7 @@ class Gamemode
 
     function OnTick() {}
 
-    function DrawHUDStats() {}
+    function GetHUDStats() {}
 
     function OnTetrominoLand(lines_cleared) {}
     function OnGameOver(victory) {}
@@ -36,7 +36,7 @@ enum GAMEMODE {
 
 Gamemodes[GAMEMODE.MARATHON] <- class extends Gamemode
 {
-    function DrawHUDStats()
+    function GetHUDStats()
     {
         local stats = "HISCORE\n" + CookieUtil.Get(player, "highscore_marathon") + "\n\nSCORE\n" + player.GetVar("score") + "\n\nLINES\n" + player.GetVar("lines_cleared") + "\n\nLEVEL\n" + (player.GetVar("level") + 1);
         player.SendGameText(-0.666, -0.375, CHAN_STATS, "255 255 255", stats);
@@ -69,7 +69,7 @@ Gamemodes[GAMEMODE.FORTYLINE] <- class extends Gamemode
         ticks_elapsed++;
     }
 
-    function DrawHUDStats()
+    function GetHUDStats()
     {
         local stats = "TOP TIME\n" + FormatTime(TicksToTime(CookieUtil.Get(player, "hiscore_40lines"))) + "\n\nTIME\n" + FormatTime(TicksToTime(ticks_elapsed)) + "\n\nLINES\n" + lines_remaining;
         player.SendGameText(-0.666, -0.475, CHAN_STATS, "255 255 255", stats);
@@ -118,7 +118,7 @@ Gamemodes[GAMEMODE.ULTRA] <- class extends Gamemode
         ticks_remaining--;
     }
 
-    function DrawHUDStats()
+    function GetHUDStats()
     {
         local stats = "TIME LEFT\n" + FormatTime(TicksToTime(ticks_remaining)) + "\n\nHISCORE\n" + CookieUtil.Get(player, "hiscore_ultra") + "\n\nSCORE\n" + player.GetVar("score");
         player.SendGameText(-0.661, -0.475, CHAN_STATS, "255 255 255", stats);

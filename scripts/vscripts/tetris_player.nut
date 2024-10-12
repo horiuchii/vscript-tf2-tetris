@@ -4,7 +4,13 @@
 OnGameEvent("player_spawn", function(params)
 {
     if (params.team == 0)
-        SendGlobalGameEvent("player_activate", {userid = params.userid})
+    {
+        SendGlobalGameEvent("player_activate", {userid = params.userid});
+        for (local i = 0; i < 6; i++)
+        {
+            player.SendGameText(-1, -1, i, "255 255 255", " ");
+        }
+    }
 
     local player = GetPlayerFromUserID(params.userid);
 
@@ -51,6 +57,7 @@ OnGameEvent("player_disconnect", 0, function(params)
 
     SetVar("menu_index", MENU.MainMenu);
     SetVar("selected_option", 0);
+    GenerateMenuText();
 
     SetVar("last_buttons", 0);
 
@@ -148,59 +155,65 @@ AddListener("tick_frame", 0, function()
 
 ::CTFPlayer.UpdateHUD <- function()
 {
-    SendGameText(-0.676, -0.85, CHAN_HOLD, GetVar("can_switch_hold") ? "255 255 255" : "60 60 60", "HOLD");
-    GetVar("gamemode").DrawHUDStats();
+    SendGameText(-0.676, -0.85, CHAN_HOLD, (GetVar("can_switch_hold") ? "255 255 255" : "60 60 60"), "HOLD");
+    SendGameText(0.676, -0.85, CHAN_NEXT, "255 255 255", "NEXT");
+    HandleDisplayMajorAction();
+    GetVar("gamemode").GetHUDStats();
+}
 
-    if(GetVar("major_action_display_ticks") > 0)
+::CTFPlayer.HandleDisplayMajorAction <- function()
+{
+    if(GetVar("major_action_display_ticks") <= 0)
     {
-        SubtractVar("major_action_display_ticks", 1);
-
-        local major_action_string = "";
-
-        switch(GetVar("last_major_action"))
-        {
-            case MAJOR_ACTION.SINGLE: major_action_string += "SINGLE"; break;
-            case MAJOR_ACTION.DOUBLE: major_action_string += "DOUBLE"; break;
-            case MAJOR_ACTION.TRIPLE: major_action_string += "TRIPLE"; break;
-            case MAJOR_ACTION.TETRIS: major_action_string += "TETRIS"; break;
-            case MAJOR_ACTION.MINI_TSPIN: major_action_string += "MINI T-SPIN"; break;
-            case MAJOR_ACTION.TSPIN: major_action_string += "T-SPIN"; break;
-            case MAJOR_ACTION.MINI_TSPIN_SINGLE: major_action_string += "MINI T-SPIN SINGLE"; break;
-            case MAJOR_ACTION.TSPIN_SINGLE: major_action_string += "T-SPIN SINGLE"; break;
-            case MAJOR_ACTION.TSPIN_DOUBLE: major_action_string += "T-SPIN DOUBLE"; break;
-            case MAJOR_ACTION.TSPIN_TRIPLE: major_action_string += "T-SPIN TRIPLE"; break;
-        }
-
-        local back_to_back_string = "";
-
-        if(GetVar("back_to_back_combo") > 1)
-        {
-            local combo_streak = (GetVar("back_to_back_combo") > 2) ? ("x" + (GetVar("back_to_back_combo") - 1) + " ") : "";
-            back_to_back_string = "BACK-TO-BACK " + combo_streak
-        }
-
-        local full_clear_string = "";
-        if(GetVar("last_full_clear") != null)
-        {
-            full_clear_string += "\n ";
-            switch(GetVar("last_full_clear"))
-            {
-                case PERFECT_CLEAR.SINGLE: full_clear_string += "SINGLE-LINE PERFECT CLEAR"; break;
-                case PERFECT_CLEAR.DOUBLE: full_clear_string += "DOUBLE-LINE PERFECT CLEAR"; break;
-                case PERFECT_CLEAR.TRIPLE: full_clear_string += "TRIPLE-LINE PERFECT CLEAR"; break;
-                case PERFECT_CLEAR.TETRIS: full_clear_string += "TETRIS PERFECT CLEAR"; break;
-                case PERFECT_CLEAR.BACK_TO_BACK_TETRIS: full_clear_string += "BACK-TO-BACK TETIRS PERFECT CLEAR"; break;
-            }
-        }
-
-        local color = remapclamped(GetVar("major_action_display_ticks"), (MAJOR_ACTION_DISPLAY_TICKS - MAJOR_ACTION_DISPLAY_TICKS/4.0), 0.0, 255, 0).tostring();
-
-        local y = GetVar("last_full_clear") != null ? -0.001 : -0.025
-
-        SendGameText(-1, y, CHAN_MAJOR_ACTION, color + " " + color + " " + color, back_to_back_string + major_action_string + full_clear_string);
+        SendGameText(-1, -0.025, CHAN_MAJOR_ACTION, "255 255 255", "");
+        return;
     }
-    else
-        SendGameText(-1, -0.025, CHAN_MAJOR_ACTION, "255 255 255", "none");
+
+    SubtractVar("major_action_display_ticks", 1);
+
+    local major_action_string = "";
+
+    switch(GetVar("last_major_action"))
+    {
+        case MAJOR_ACTION.SINGLE: major_action_string += "SINGLE"; break;
+        case MAJOR_ACTION.DOUBLE: major_action_string += "DOUBLE"; break;
+        case MAJOR_ACTION.TRIPLE: major_action_string += "TRIPLE"; break;
+        case MAJOR_ACTION.TETRIS: major_action_string += "TETRIS"; break;
+        case MAJOR_ACTION.MINI_TSPIN: major_action_string += "MINI T-SPIN"; break;
+        case MAJOR_ACTION.TSPIN: major_action_string += "T-SPIN"; break;
+        case MAJOR_ACTION.MINI_TSPIN_SINGLE: major_action_string += "MINI T-SPIN SINGLE"; break;
+        case MAJOR_ACTION.TSPIN_SINGLE: major_action_string += "T-SPIN SINGLE"; break;
+        case MAJOR_ACTION.TSPIN_DOUBLE: major_action_string += "T-SPIN DOUBLE"; break;
+        case MAJOR_ACTION.TSPIN_TRIPLE: major_action_string += "T-SPIN TRIPLE"; break;
+    }
+
+    local back_to_back_string = "";
+
+    if(GetVar("back_to_back_combo") > 1)
+    {
+        local combo_streak = (GetVar("back_to_back_combo") > 2) ? ("x" + (GetVar("back_to_back_combo") - 1) + " ") : "";
+        back_to_back_string = "BACK-TO-BACK " + combo_streak
+    }
+
+    local full_clear_string = "";
+    if(GetVar("last_full_clear") != null)
+    {
+        full_clear_string += "\n ";
+        switch(GetVar("last_full_clear"))
+        {
+            case PERFECT_CLEAR.SINGLE: full_clear_string += "SINGLE-LINE PERFECT CLEAR"; break;
+            case PERFECT_CLEAR.DOUBLE: full_clear_string += "DOUBLE-LINE PERFECT CLEAR"; break;
+            case PERFECT_CLEAR.TRIPLE: full_clear_string += "TRIPLE-LINE PERFECT CLEAR"; break;
+            case PERFECT_CLEAR.TETRIS: full_clear_string += "TETRIS PERFECT CLEAR"; break;
+            case PERFECT_CLEAR.BACK_TO_BACK_TETRIS: full_clear_string += "BACK-TO-BACK TETIRS PERFECT CLEAR"; break;
+        }
+    }
+
+    local color = remapclamped(GetVar("major_action_display_ticks"), (MAJOR_ACTION_DISPLAY_TICKS - MAJOR_ACTION_DISPLAY_TICKS/4.0), 0.0, 255, 0).tostring();
+
+    local y = GetVar("last_full_clear") != null ? -0.001 : -0.025
+
+    SendGameText(-1, y, CHAN_MAJOR_ACTION, color + " " + color + " " + color, back_to_back_string + major_action_string + full_clear_string);
 }
 
 ::CTFPlayer.HandleLineClearDelay <- function()
