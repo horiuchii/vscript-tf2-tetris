@@ -1,0 +1,11 @@
+"UnlitGeneric"
+{
+	"$baseTexture" "vgui\menu_select"
+	"$translucent" 1
+	"$ignorez" 1
+	"%keywords" "tf"
+	
+	"$basetexturetransform" "center 0.5 0.5 scale 4.75 4.0 rotate 0 translate 0.1 -0.22"
+}
+
+ 

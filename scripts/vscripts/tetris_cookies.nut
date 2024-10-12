@@ -9,6 +9,14 @@ class Cookies
         ["highscore_marathon"] =
         {
             default_value = 0
+        },
+        ["hiscore_40lines"] =
+        {
+            default_value = 39534 //9:59 in ticks
+        },
+        ["hiscore_ultra"] =
+        {
+            default_value = 0
         }
     }
 }

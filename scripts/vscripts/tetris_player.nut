@@ -3,9 +3,14 @@
 
 OnGameEvent("player_spawn", function(params)
 {
+    if (params.team == 0)
+        SendGlobalGameEvent("player_activate", {userid = params.userid})
+
     local player = GetPlayerFromUserID(params.userid);
 
     player.ValidateScriptScope();
+
+    CookieUtil.CreateCache(player);
 
     player.AddHudHideFlags(HIDEHUD_HEALTH | HIDEHUD_MISCSTATUS | HIDEHUD_WEAPONSELECTION | HIDEHUD_FLASHLIGHT | HIDEHUD_CROSSHAIR);
     player.RemoveAllWeapons();
@@ -16,14 +21,13 @@ OnGameEvent("player_spawn", function(params)
     player.DisableDraw();
     player.SetMoveType(MOVETYPE_NONE, MOVECOLLIDE_DEFAULT);
     SetPropInt(player, "m_iFOV", 75);
-    FindByName(null, "point_viewcontrol").AcceptInput("enable", "", player, player);
-
-    player.InitPlayerVariables();
 
     if(PlayerSpawned.find(player) != null)
         return;
 
     PlayerSpawned.append(player);
+
+    player.InitPlayerVariables();
 
     player.SwitchTeam(TF_TEAM_RED);
     SetPropInt(player, "m_Shared.m_iDesiredPlayerClass", TF_CLASS_SCOUT);
@@ -43,15 +47,18 @@ OnGameEvent("player_disconnect", 0, function(params)
 
 ::CTFPlayer.InitPlayerVariables <- function()
 {
-    if(this.GetTeam() != TF_TEAM_UNASSIGNED)
-        CookieUtil.CreateCache(this);
+    SetVar("gamemode", null);
+
+    SetVar("menu_index", MENU.MainMenu);
+    SetVar("selected_option", 0);
 
     SetVar("last_buttons", 0);
 
-    SetVar("first_play", true);
-    SetVar("game_active", false);
-    SetVar("game_paused", false);
+    ResetTetrisVariables();
+}
 
+::CTFPlayer.ResetTetrisVariables <- function()
+{
     SetVar("score", 0);
     SetVar("lines_cleared", 0);
     SetVar("level", 0);
@@ -93,17 +100,32 @@ AddListener("tick_frame", 0, function()
     {
         SetPropInt(player, "m_Shared.m_nPlayerState", 2); //stops suicide commands
         player.OnTick();
+        player.SetVar("last_buttons", player.GetButtons());
     }
 });
 
 ::CTFPlayer.OnTick <- function()
 {
-    CheckButtonCommands();
-    SetVar("last_buttons", GetButtons());
+    if(DEBUG)
+        DrawDebugVars();
+
+    HandleMenuCosmetics();
+    //if we are in a menu, we aren't playing the game
+    if(GetVar("menu_index") != null)
+    {
+        HandleCurrentMenu();
+        return;
+    }
+
+    //tick regular tetris from here
+    if(GetVar("gamemode") == null)
+        return;
 
     UpdateHUD();
+    GetVar("gamemode").OnTick();
+    CheckButtonCommands();
 
-    if(GetVar("game_paused") || !GetVar("game_active") || !GetVar("active_tetromino"))
+    if(!GetVar("active_tetromino"))
         return;
 
     if(HandleLineClearDelay())
@@ -113,11 +135,21 @@ AddListener("tick_frame", 0, function()
     HandleTetrominoGravity();
 }
 
+::CTFPlayer.HandleMenuCosmetics <- function()
+{
+    local menu_index = GetVar("menu_index");
+    local ingame = menu_index != null && menu_index != MENU.Pause && menu_index != MENU.GameOver;
+    SetPropVector(this, "m_Local.m_skybox3d.origin", SKY_POS + (ingame ? MENU_SKY_OFFSET : Vector(0,0,0)));
+    local desired_viewcontrol = FindByName(null, ingame ? "point_viewcontrol2" : "point_viewcontrol");
+    if(GetPropEntity(this, "m_hViewEntity") != desired_viewcontrol)
+        desired_viewcontrol.AcceptInput("enable", "", this, this);
+    SetScriptOverlayMaterial(menu_index != null ? "vgui/menu_select.vmt" : null);
+}
+
 ::CTFPlayer.UpdateHUD <- function()
 {
-    SendGameText(-0.676, -0.85, 0, GetVar("can_switch_hold") ? "255 255 255" : "60 60 60", "HOLD");
-    SendGameText(-0.666, -0.375, 1, "255 255 255", "HISCORE\n" + CookieUtil.Get(this, "highscore_marathon") + "\n\nSCORE\n" + GetVar("score") + "\n\nLINES\n" + GetVar("lines_cleared") + "\n\nLEVEL\n" + (GetVar("level") + 1));
-    SendGameText(0.676, -0.85, 2, "255 255 255", "NEXT");
+    SendGameText(-0.676, -0.85, CHAN_HOLD, GetVar("can_switch_hold") ? "255 255 255" : "60 60 60", "HOLD");
+    GetVar("gamemode").DrawHUDStats();
 
     if(GetVar("major_action_display_ticks") > 0)
     {
@@ -148,7 +180,7 @@ AddListener("tick_frame", 0, function()
         }
 
         local full_clear_string = "";
-        if(GetVar("last_full_clear"))
+        if(GetVar("last_full_clear") != null)
         {
             full_clear_string += "\n ";
             switch(GetVar("last_full_clear"))
@@ -163,31 +195,12 @@ AddListener("tick_frame", 0, function()
 
         local color = remapclamped(GetVar("major_action_display_ticks"), (MAJOR_ACTION_DISPLAY_TICKS - MAJOR_ACTION_DISPLAY_TICKS/4.0), 0.0, 255, 0).tostring();
 
-        local y = GetVar("last_full_clear") ? -0.001 : -0.025
+        local y = GetVar("last_full_clear") != null ? -0.001 : -0.025
 
-        SendGameText(-1, y, 3, color + " " + color + " " + color, back_to_back_string + major_action_string + full_clear_string);
+        SendGameText(-1, y, CHAN_MAJOR_ACTION, color + " " + color + " " + color, back_to_back_string + major_action_string + full_clear_string);
     }
     else
-        SendGameText(-1, -0.025, 3, "255 255 255", "");
-
-    if(GetVar("game_paused"))
-        SendGameText(-1, -1, 4, "255 255 255", "PAUSED\n\nPRESS [SCOREBOARD]\nTO UNPAUSE");
-    else if(GetVar("first_play") && !GetVar("game_active"))
-        SendGameText(-1, -1, 4, "255 255 255", "WELCOME TO TETRIS\n\nPRESS [SCOREBOARD]\nTO START");
-    else if(!GetVar("game_active"))
-        SendGameText(-1, -1, 4, "255 255 255", "GAME OVER\n\nPRESS [SCOREBOARD]\nTO PLAY AGAIN");
-    else
-        SendGameText(-1, -1, 4, "255 255 255", "");
-
-    if(GetVar("game_paused") || !GetVar("game_active"))
-        SendGameText(0.666, 0.75, 5, "255 255 255", "[ATTACK / ALT-ATTACK] Rotate\n[STRAFE] Move Tetromino\n[MOVE FORWARD] Hold\n[MOVE BACK] Soft Drop\n[JUMP] Hard Drop\n[SCOREBOARD] Pause");
-    else
-        SendGameText(-1, -1, 5, "255 255 255", "");
-
-    if(DEBUG)
-    {
-        DrawDebugVars();
-    }
+        SendGameText(-1, -0.025, CHAN_MAJOR_ACTION, "255 255 255", "none");
 }
 
 ::CTFPlayer.HandleLineClearDelay <- function()
@@ -377,7 +390,7 @@ AddListener("tick_frame", 0, function()
 
         // Check if we should go up a level
         AddVar("lines_cleared", lines_cleared);
-        if(floor(lines_cleared_pre / 10) < floor(GetVar("lines_cleared") / 10))
+        if(floor(lines_cleared_pre / 10) < floor(GetVar("lines_cleared") / 10) && GetVar("gamemode").allow_increment_level)
             increment_level = true;
     }
 
@@ -435,14 +448,16 @@ AddListener("tick_frame", 0, function()
         CreateNewActiveTetromino(CycleGrabbag(), true);
 
     PlaySoundForPlayer({sound_name = "tetromino_land.mp3", volume = 0.75});
+
+    GetVar("gamemode").OnTetrominoLand(lines_cleared);
 }
 
-::CTFPlayer.DoGameOver <- function()
+::CTFPlayer.DoGameOver <- function(victory)
 {
-    if(GetVar("score") > CookieUtil.Get(this, "highscore_marathon"))
-        CookieUtil.Set(this, "highscore_marathon", GetVar("score"));
+    GetVar("gamemode").OnGameOver(victory);
 
-    SetVar("game_active", false);
+    SetVar("menu_index", MENU.GameOver);
+    SetVar("selected_option", 0);
 
     PlaySoundForPlayer({sound_name = "tetris_gameover.mp3"});
 
@@ -481,18 +496,18 @@ AddListener("tick_frame", 0, function()
 
 ::CTFPlayer.CheckButtonCommands <- function()
 {
-    if(WasButtonJustPressed(IN_SCORE))
+    if(WasButtonJustPressed(IN_RELOAD))
     {
-        if(GetVar("game_active"))
-            SetVar("game_paused", !GetVar("game_paused"));
-        else
-        {
-            ResetEverything();
-            return;
-        }
+        GetVar("gamemode").OnRoundReset();
     }
 
-    if(!GetVar("game_active") || GetVar("game_paused") || GetVar("line_clear_delay_ticks") > 0)
+    if(WasButtonJustPressed(IN_SCORE))
+    {
+        SetVar("menu_index", MENU.Pause);
+        SetVar("selected_option", 0);
+    }
+
+    if(GetVar("line_clear_delay_ticks") > 0)
         return;
 
     local tetromino = GetVar("active_tetromino");
@@ -622,13 +637,4 @@ AddListener("tick_frame", 0, function()
     ghost_tetromino.shape = active_tetromino.shape;
     ghost_tetromino.ColorBlocks(1);
     ghost_tetromino.SetBlockPos(active_tetromino.GetGhostBlockPos(), GetMoveDir(MOVE_DIR.UP));
-}
-
-::CTFPlayer.ResetEverything <- function()
-{
-    RemoveInstancedProps();
-    InitPlayerVariables();
-    SetVar("game_active", true);
-    SetVar("first_play", false);
-    CreateNewActiveTetromino(CycleGrabbag(), true);
 }

@@ -1,6 +1,18 @@
 ::BLOCK_MODEL <- "models/tetris_block.mdl";
 PrecacheModel(BLOCK_MODEL);
 
+::CHAN_HOLD <- 0;
+::CHAN_STATS <- 1;
+::CHAN_MAJOR_ACTION <- 2;
+
+::CHAN_MENU <- 0;
+::CHAN_INSTRUCTIONS <- 1;
+
+::SKY_POS <- FindByClassname(null, "sky_camera").GetOrigin();
+::MENU_SKY_OFFSET <- Vector(-3684, 0, 0);
+
+::TICKRATE_TIME <- 0.01515151515;
+
 ::BOARD_PIVOT <- FindByName(null, "board_pivot").GetOrigin();
 ::GRID_SIZE <- 64.0;
 ::BOARD_SIZE_OFFSCREEN <- 5;

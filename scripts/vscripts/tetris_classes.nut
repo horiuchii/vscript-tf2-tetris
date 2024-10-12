@@ -87,7 +87,7 @@ class Tetromino
 
         // check if we are spawning inside a block
         if(DoesCollideIfMoveInDirection(MOVE_DIR.NONE))
-            owning_player.DoGameOver();
+            owning_player.DoGameOver(false);
     }
 
     function _tostring()
@@ -218,7 +218,7 @@ class Tetromino
 
         if(blocks_oob == blocks.len())
         {
-            owning_player.DoGameOver();
+            owning_player.DoGameOver(false);
             return;
         }
 
