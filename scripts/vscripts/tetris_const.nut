@@ -7,7 +7,7 @@ PrecacheModel(BLOCK_MODEL);
 ::CHAN_MAJOR_ACTION <- 3;
 
 ::CHAN_MENU <- 0;
-::CHAN_INSTRUCTIONS <- 1;
+::CHAN_INSTRUCTIONS <- 2;
 
 ::SKY_POS <- FindByClassname(null, "sky_camera").GetOrigin();
 ::MENU_SKY_OFFSET <- Vector(-3684, 0, 0);

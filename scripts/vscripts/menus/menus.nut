@@ -127,7 +127,19 @@ CTFPlayer.GenerateMenuText <- function()
     message += "\n" + description + "";
     SendGameText(-1, 0.3, CHAN_MENU, "255 255 255", message);
     SendGameText(0.666, 0.75, CHAN_INSTRUCTIONS, "255 255 255", "Game Controls:\n[FIRE / ALT-FIRE] Rotate\n[STRAFE] Move\n[FORWARD] Hold\n[BACK] Soft Drop\n[JUMP] Hard Drop\n[SCOREBOARD] Pause\n[RELOAD] Restart\n\nMenu Controls:\n[FIRE / JUMP] Confirm\n[ALT-FIRE] Return\n[FORWARD/BACK] Move");
-    SendGameText(0.666, 0.5, 2, "255 255 255", "");
-    SendGameText(0.666, 0.3, 3, "255 255 255", "");
-    SendGameText(0.666, 0, 4, "255 255 255", "");
+
+    //draw the game hud... but in a different function... fucking shit code here!
+    if(GetVar("menu_index") == MENU.Pause || GetVar("menu_index") == MENU.GameOver)
+    {
+        GetVar("gamemode").GetHUDStats();
+        SendGameText(-0.676, -0.85, 3, "255 255 255", "HOLD");
+        SendGameText(0.676, -0.85, 4, "255 255 255", "NEXT");
+    }
+    else
+    {
+        SendGameText(0.666, 0, CHAN_STATS, "255 255 255", "");
+        SendGameText(0.666, 0.3, 3, "255 255 255", "");
+        SendGameText(0.666, 0, 4, "255 255 255", "");
+    }
+
 }
