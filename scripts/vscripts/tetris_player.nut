@@ -3,6 +3,8 @@
 
 OnGameEvent("player_spawn", function(params)
 {
+    local player = GetPlayerFromUserID(params.userid);
+
     if (params.team == 0)
     {
         SendGlobalGameEvent("player_activate", {userid = params.userid});
@@ -11,8 +13,6 @@ OnGameEvent("player_spawn", function(params)
             player.SendGameText(-1, -1, i, "255 255 255", " ");
         }
     }
-
-    local player = GetPlayerFromUserID(params.userid);
 
     player.ValidateScriptScope();
 
@@ -146,11 +146,13 @@ AddListener("tick_frame", 0, function()
 {
     local menu_index = GetVar("menu_index");
     local ingame = menu_index != null && menu_index != MENU.Pause && menu_index != MENU.GameOver;
+
+    SetScriptOverlayMaterial(menu_index != null ? "vgui/menu_select.vmt" : null);
     SetPropVector(this, "m_Local.m_skybox3d.origin", SKY_POS + (ingame ? MENU_SKY_OFFSET : Vector(0,0,0)));
+
     local desired_viewcontrol = FindByName(null, ingame ? "point_viewcontrol2" : "point_viewcontrol");
     if(GetPropEntity(this, "m_hViewEntity") != desired_viewcontrol)
         desired_viewcontrol.AcceptInput("enable", "", this, this);
-    SetScriptOverlayMaterial(menu_index != null ? "vgui/menu_select.vmt" : null);
 }
 
 ::CTFPlayer.UpdateHUD <- function()
@@ -304,7 +306,7 @@ AddListener("tick_frame", 0, function()
 {
     local soft_drop_active = IsHoldingButton(IN_BACK);
 
-    if(GetVar("next_gravity_ticks") <= 0 || (soft_drop_active && (GetNextGravityTimeFromLevel() - GetVar("next_gravity_ticks")) >= floor(GetNextGravityTimeFromLevel()/10)))
+    if(GetVar("next_gravity_ticks") <= 0 || (soft_drop_active && (GetNextGravityTimeFromLevel() - GetVar("next_gravity_ticks")) >= 2))
     {
         SetVar("next_gravity_ticks", GetNextGravityTimeFromLevel());
 

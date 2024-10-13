@@ -17,6 +17,10 @@ class Cookies
         ["hiscore_ultra"] =
         {
             default_value = 0
+        },
+        ["hiscore_mission"] =
+        {
+            default_value = 0
         }
     }
 }

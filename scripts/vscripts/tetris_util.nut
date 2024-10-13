@@ -79,14 +79,17 @@
     }
 }
 
-::CTFPlayer.PlaySoundForPlayer <- function(data)
+::CTFPlayer.PlaySoundForPlayer <- function(data, delay = 0)
 {
     local base_table = {entity = this, filter_type = RECIPIENT_FILTER_SINGLE_PLAYER};
 
     if(safeget(data, "sound_name", null))
         PrecacheSound(safeget(data, "sound_name", null));
 
-    EmitSoundEx(combinetables(data, base_table));
+    if(delay)
+        RunWithDelay(delay, function(){EmitSoundEx(combinetables(data, base_table));})
+    else
+        EmitSoundEx(combinetables(data, base_table));
 }
 
 ::CTFPlayer.SendChat <- function(message)

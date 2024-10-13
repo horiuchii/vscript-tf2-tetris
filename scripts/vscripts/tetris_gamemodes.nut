@@ -133,3 +133,18 @@ Gamemodes[GAMEMODE.ULTRA] <- class extends Gamemode
             CookieUtil.Set(player, "hiscore_ultra", player.GetVar("score"));
     }
 }
+
+Gamemodes[GAMEMODE.MARATHON] <- class extends Gamemode
+{
+    function GetHUDStats()
+    {
+        local stats = "HISCORE\n" + CookieUtil.Get(player, "highscore_mission") + "\n\nSCORE\n" + player.GetVar("score") + "\n\nLINES\n" + player.GetVar("lines_cleared") + "\n\nLEVEL\n" + (player.GetVar("level") + 1);
+        player.SendGameText(-0.666, -0.375, CHAN_STATS, "255 255 255", stats);
+    }
+
+    function OnGameOver(victory)
+    {
+        if(player.GetVar("score") > CookieUtil.Get(player, "highscore_mission"))
+            CookieUtil.Set(player, "highscore_mission", player.GetVar("score"));
+    }
+}

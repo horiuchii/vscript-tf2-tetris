@@ -11,7 +11,7 @@ enum SINGLEPLAYER_MENU_ITEMS
     Marathon
     FortyLine
     Ultra
-    Mission
+    //Mission
 }
 
 menus[MENU.Singleplayer].items[SINGLEPLAYER_MENU_ITEMS.Marathon] <- class extends MenuItem
@@ -65,16 +65,19 @@ menus[MENU.Singleplayer].items[SINGLEPLAYER_MENU_ITEMS.Ultra] <- class extends M
     }
 }();
 
-menus[MENU.Singleplayer].items[SINGLEPLAYER_MENU_ITEMS.Mission] <- class extends MenuItem
-{
-    title = "Mission"
+// menus[MENU.Singleplayer].items[SINGLEPLAYER_MENU_ITEMS.Mission] <- class extends MenuItem
+// {
+//     title = "Mission"
 
-    function GenerateDesc(player)
-    {
-        return "Coming Soon...\n\nComplete as many missions as\nyou can under a strict time limit!";
-    }
+//     function GenerateDesc(player)
+//     {
+//         return "Highscore: " + CookieUtil.Get(player, "hiscore_mission") + "\n\nComplete as many missions as\nyou can under a strict time limit!";
+//     }
 
-    function OnSelected(player)
-    {
-    }
-}();
+//     function OnSelected(player)
+//     {
+        // player.SetVar("gamemode", Gamemodes[GAMEMODE.MISSION](player));
+        // player.SetVar("menu_index", null);
+        // player.GetVar("gamemode").OnRoundReset();
+//     }
+// }();

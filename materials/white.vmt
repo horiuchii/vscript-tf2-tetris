@@ -1,5 +1,4 @@
 "UnlitGeneric"
 {
-	"$basetexture" "test/color008"
-	"$model" 1
+	"$baseTexture" "models\props_moonbase/moon_stars01"
 }

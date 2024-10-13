@@ -174,6 +174,7 @@
         return;
 
     local sound;
+    local mini = false;
 
     switch(major_action)
     {
@@ -181,36 +182,41 @@
         case MAJOR_ACTION.DOUBLE: sound = "double"; break;
         case MAJOR_ACTION.TRIPLE: sound = "triple"; break;
         case MAJOR_ACTION.TETRIS: sound = "tetris"; break;
-        case MAJOR_ACTION.MINI_TSPIN: sound = "mini_tspin"; break;
+        case MAJOR_ACTION.MINI_TSPIN: mini = true;
         case MAJOR_ACTION.TSPIN: sound = "tspin"; break;
-        case MAJOR_ACTION.MINI_TSPIN_SINGLE: sound = "mini_tspin_single"; break;
+        case MAJOR_ACTION.MINI_TSPIN_SINGLE: mini = true;
         case MAJOR_ACTION.TSPIN_SINGLE: sound = "tspin_single"; break;
         case MAJOR_ACTION.TSPIN_DOUBLE: sound = "tspin_double"; break;
         case MAJOR_ACTION.TSPIN_TRIPLE: sound = "tspin_triple"; break;
     }
 
+    //BACK-TO-BACK, MINI, T-SPIN SINGLE, PERFECT CLEAR, LEVEL UP
+
+    local vo_delay = 0;
+
     if(GetVar("back_to_back_combo") > 1)
     {
         PlaySoundForPlayer({sound_name = "tetris_back_to_back.mp3"});
-        RunWithDelay(0.8, function(){
-            PlaySoundForPlayer({sound_name = "tetris_" + sound + ".mp3"});
-        })
-        if(level_up)
-        {
-            RunWithDelay(2.3, function(){
-                PlaySoundForPlayer({sound_name = "tetris_levelup.mp3"});
-            })
-        }
+        vo_delay += 0.7;
     }
-    else
-    {
-        PlaySoundForPlayer({sound_name = "tetris_" + sound + ".mp3"});
-        if(level_up)
-        {
-            RunWithDelay(1.5, function(){
-                PlaySoundForPlayer({sound_name = "tetris_levelup.mp3"});
-            })
-        }
 
+    if(mini)
+    {
+        PlaySoundForPlayer({sound_name = "tetris_mini.mp3"}, vo_delay);
+        vo_delay += 0.4;
+    }
+
+    PlaySoundForPlayer({sound_name = "tetris_" + sound + ".mp3"}, vo_delay);
+    vo_delay += 1.2;
+
+    if(GetVar("last_full_clear") != null)
+    {
+        PlaySoundForPlayer({sound_name = "tetris_perfectclear.mp3"}, vo_delay);
+        vo_delay += 1.0;
+    }
+
+    if(level_up)
+    {
+        PlaySoundForPlayer({sound_name = "tetris_levelup.mp3"}, vo_delay);
     }
 }
