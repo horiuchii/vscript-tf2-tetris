@@ -7,10 +7,12 @@ IncludeScript(projectDir+"tetris_util.nut", this);
 IncludeScript(projectDir+"block_util.nut", this);
 IncludeScript(projectDir+"tetris_cookies.nut", this);
 IncludeScript(projectDir+"tetris_hud.nut", this);
-IncludeScript(projectDir+"menus/menus.nut", this);
 IncludeScript(projectDir+"tetris_gamemodes.nut", this);
+IncludeScript(projectDir+"menus/menus.nut", this);
 IncludeScript(projectDir+"tetris_classes.nut", this);
 IncludeScript(projectDir+"tetris_player.nut", this);
+
+//cookies must always be included before gamemodes which needs to be included before menus
 
 Convars.SetValue("mp_waitingforplayers_cancel", 1);
 Convars.SetValue("mp_forceautoteam", 1);
