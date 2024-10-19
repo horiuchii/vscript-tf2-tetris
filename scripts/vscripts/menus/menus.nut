@@ -131,7 +131,7 @@ CTFPlayer.GenerateMenuText <- function()
     //draw the game hud... but in a different function... fucking shit code here!
     if(GetVar("menu_index") == MENU.Pause || GetVar("menu_index") == MENU.GameOver)
     {
-        GetVar("gamemode").GetHUDStats();
+        GetVar("gamemode").UpdateHUD();
         SendGameText(-0.676, -0.85, 3, "255 255 255", "HOLD");
         SendGameText(0.676, -0.85, 4, "255 255 255", "NEXT");
     }

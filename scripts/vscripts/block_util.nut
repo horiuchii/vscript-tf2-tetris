@@ -133,6 +133,44 @@
     }
 }
 
+::CTFPlayer.MoveBoardUp <- function(count)
+{
+    for(local y = 0; y < BOARD_SIZE.y; y++)
+    {
+        for(local x = 1; x < BOARD_SIZE.x + 1; x++)
+        {
+            local block = GetVar("board_blocks")[x][y];
+            if(!block)
+                continue;
+
+            GetVar("board_blocks")[block.pos.x][block.pos.y] = null;
+            GetVar("board_blocks")[block.pos.x][block.pos.y - count] = block;
+            block.SetPos(block.pos + (GetMoveDir(MOVE_DIR.UP) * count));
+        }
+    }
+}
+
+::CTFPlayer.AddGarbage <- function(count)
+{
+    MoveBoardUp(count);
+
+    for(local y = BOARD_SIZE.y - 1; (BOARD_SIZE.y - 1) - y < count; y--)
+    {
+        local skipped_index = RandomInt(1, BOARD_SIZE.x);
+
+        for(local x = 1; x < BOARD_SIZE.x + 1; x++)
+        {
+            if(x == skipped_index)
+                continue;
+
+            local block = Block(this, Vector2D(x, y));
+            GetVar("board_blocks")[x][y] = block;
+            block.SetColorCustom([50,50,50,255]);
+            SetPropBool(block.ent, "m_bGlowEnabled", true);
+        }
+    }
+}
+
 ::CTFPlayer.CycleGrabbag <- function()
 {
     if(GetVar("grab_bag").len() <= TETROMINO_COUNT)

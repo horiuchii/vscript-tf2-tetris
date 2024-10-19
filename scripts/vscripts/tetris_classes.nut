@@ -5,14 +5,14 @@ class Block
     tetromino = null;
     owning_player = null;
 
-    function constructor(player, pos, tetromino)
+    function constructor(player, pos, tetromino = null)
     {
         this.owning_player = player;
         this.tetromino = tetromino;
 
-        this.ent = CreateInstancedProp(this.owning_player, BLOCK_MODEL);
+        this.ent = this.owning_player.CreateInstancedProp(BLOCK_MODEL);
         SetPropInt(ent, "m_nRenderMode", kRenderTransColor);
-        this.SetPos(pos + Vector2D(BOARD_SIZE.x/2, BOARD_SIZE_OFFSCREEN));
+        this.SetPos(pos + (tetromino ? Vector2D(BOARD_SIZE.x/2, BOARD_SIZE_OFFSCREEN) : Vector2D(0,0)));
     }
 
     function _tostring()
@@ -39,7 +39,7 @@ class Block
     function SetPos(new_pos)
     {
         pos = new_pos;
-        ent.SetOrigin(BoardToWorld(pos) + BLOCK_OFFSET + (tetromino.type == TETROMINO_TYPE.GHOST ? Vector(1, 0, 0) : Vector(0, 0, 0)));
+        ent.SetOrigin(BoardToWorld(pos) + BLOCK_OFFSET + (tetromino && tetromino.type == TETROMINO_TYPE.GHOST ? Vector(1, 0, 0) : Vector(0, 0, 0)));
     }
 
     function DoesCollide(pos)

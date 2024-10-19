@@ -97,7 +97,7 @@
     ClientPrint(this, HUD_PRINTTALK, message);
 }
 
-::CreateInstancedProp <- function(client, model)
+::CTFPlayer.CreateInstancedProp <- function(model)
 {
     PrecacheModel(model);
     local prop = CreateByClassname("obj_teleporter"); // not using SpawnEntityFromTable as that creates spawning noises
@@ -106,7 +106,7 @@
     prop.AddEFlags(EFL_NO_THINK_FUNCTION); // prevents the entity from disappearing
     SetPropBool(prop, "m_bPlacing", true);
     SetPropInt(prop, "m_fObjectFlags", 2); // sets "attachment" flag, prevents entity being snapped to player feet
-    SetPropEntity(prop, "m_hBuilder", client);
+    SetPropEntity(prop, "m_hBuilder", this);
 
     prop.SetModel(model);
     prop.KeyValueFromInt("disableshadows", 1);

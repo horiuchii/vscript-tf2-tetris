@@ -14,11 +14,11 @@ PrecacheModel(BLOCK_MODEL);
 
 ::TICKRATE_TIME <- 0.01515151515;
 
-::BOARD_PIVOT <- FindByName(null, "board_pivot").GetOrigin();
 ::GRID_SIZE <- 64.0;
-::BOARD_SIZE_OFFSCREEN <- 5;
+::BOARD_SIZE_OFFSCREEN <- 20;
 ::BOARD_SIZE <- Vector2D(10,20 + BOARD_SIZE_OFFSCREEN);
 ::BLOCK_OFFSET <- Vector(0,32,-32);
+::BOARD_PIVOT <- FindByName(null, "board_pivot").GetOrigin() + Vector(0,0,BOARD_SIZE_OFFSCREEN*GRID_SIZE);
 
 ::HELD_TETROMINO_POS <- FindByName(null, "hold_tetromino_pos").GetOrigin();
 

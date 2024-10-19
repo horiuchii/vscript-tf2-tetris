@@ -25,7 +25,7 @@ class Gamemode
 
     function OnTick() {}
 
-    function GetHUDStats() {}
+    function UpdateHUD() {}
 
     function OnTetrominoLand(lines_cleared) {}
     function OnGameOver(victory) {}
@@ -50,7 +50,7 @@ DefineGamemode(class extends Gamemode
         return "Highscore: " + CookieUtil.Get(client, cookie) + "\n\nSee how long you can last\nin an endless tetris!";
     }
 
-    function GetHUDStats()
+    function UpdateHUD()
     {
         local stats = "HISCORE\n" + CookieUtil.Get(player, cookie) + "\n\nSCORE\n" + player.GetVar("score") + "\n\nLINES\n" + player.GetVar("lines_cleared") + "\n\nLEVEL\n" + (player.GetVar("level") + 1);
         player.SendGameText(-0.666, -0.375, CHAN_STATS, "255 255 255", stats);
@@ -92,7 +92,7 @@ DefineGamemode(class extends Gamemode
         ticks_elapsed++;
     }
 
-    function GetHUDStats()
+    function UpdateHUD()
     {
         local stats = "TOP TIME\n" + FormatTime(TicksToTime(CookieUtil.Get(player, cookie))) + "\n\nTIME\n" + FormatTime(TicksToTime(ticks_elapsed)) + "\n\nLINES\n" + lines_remaining;
         player.SendGameText(-0.666, -0.475, CHAN_STATS, "255 255 255", stats);
@@ -150,7 +150,7 @@ DefineGamemode(class extends Gamemode
         ticks_remaining--;
     }
 
-    function GetHUDStats()
+    function UpdateHUD()
     {
         local stats = "TIME LEFT\n" + FormatTime(TicksToTime(ticks_remaining)) + "\n\nHISCORE\n" + CookieUtil.Get(player, cookie) + "\n\nSCORE\n" + player.GetVar("score");
         player.SendGameText(-0.661, -0.475, CHAN_STATS, "255 255 255", stats);
@@ -166,36 +166,4 @@ DefineGamemode(class extends Gamemode
     }
 })
 
-DefineGamemode(class extends Gamemode
-{
-    name = "Mission"
-    cookie = "hiscore_mission"
-    default_hiscore = 0;
-
-    allow_increment_level = false;
-
-    mission_no = 0;
-
-    function GenerateDesc(client)
-    {
-        return "Highscore: " + CookieUtil.Get(client, cookie) + "\n\nComplete as many missions as\nyou can under a strict time limit!";
-    }
-
-    function OnRoundReset()
-    {
-        base.OnRoundReset();
-        mission_no = 0;
-    }
-
-    function GetHUDStats()
-    {
-        local stats = "HISCORE\n" + CookieUtil.Get(player, cookie) + "\n\nMISSION\n" + mission_no + "\n\nLEVEL\n" + (player.GetVar("level") + 1);
-        player.SendGameText(-0.666, -0.475, CHAN_STATS, "255 255 255", stats);
-    }
-
-    function OnGameOver(victory)
-    {
-        if(mission_no > CookieUtil.Get(player, cookie))
-            CookieUtil.Set(player, cookie, mission_no);
-    }
-})
+IncludeScript(projectDir+"gamemodes/gamemode_mission.nut", this);

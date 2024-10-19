@@ -160,7 +160,7 @@ AddListener("tick_frame", 0, function()
     SendGameText(-0.676, -0.85, CHAN_HOLD, (GetVar("can_switch_hold") ? "255 255 255" : "60 60 60"), "HOLD");
     SendGameText(0.676, -0.85, CHAN_NEXT, "255 255 255", "NEXT");
     HandleDisplayMajorAction();
-    GetVar("gamemode").GetHUDStats();
+    GetVar("gamemode").UpdateHUD();
 }
 
 ::CTFPlayer.HandleDisplayMajorAction <- function()
@@ -494,7 +494,7 @@ AddListener("tick_frame", 0, function()
 
         if(!tetromino_model)
         {
-            GetVar("next_tetromino_model_array")[i] = CreateInstancedProp(this, "models/empty.mdl");
+            GetVar("next_tetromino_model_array")[i] = CreateInstancedProp("models/empty.mdl");
             local z_offset = (i * NEXT_TETROMINO_OFFSET) + (i != 0 ? NEXT_TETROMINO_INITIAL_OFFSET : 0);
             GetVar("next_tetromino_model_array")[i].SetOrigin(NEXT_TETROMINO_POS + Vector(0,0,z_offset));
 
@@ -616,7 +616,7 @@ AddListener("tick_frame", 0, function()
 
     if(!GetVar("hold_tetromino_cluster_model"))
     {
-        SetVar("hold_tetromino_cluster_model", CreateInstancedProp(this, GetClusterModelFromShape(current_shape)));
+        SetVar("hold_tetromino_cluster_model", CreateInstancedProp(GetClusterModelFromShape(current_shape)));
         local held_tetromino_ent = GetVar("hold_tetromino_cluster_model");
         held_tetromino_ent.SetOrigin(HELD_TETROMINO_POS);
         SetPropInt(held_tetromino_ent, "m_nRenderMode", kRenderTransColor);
